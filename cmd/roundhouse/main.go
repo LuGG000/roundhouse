@@ -1,0 +1,88 @@
+// Command roundhouse is a hub to start new Claude Code chats and return to
+// old ones, in any folder.
+package main
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/spf13/cobra"
+
+	"github.com/LuGG000/roundhouse/internal/config"
+	"github.com/LuGG000/roundhouse/internal/index"
+	"github.com/LuGG000/roundhouse/internal/paths"
+	"github.com/LuGG000/roundhouse/internal/starter"
+	"github.com/LuGG000/roundhouse/internal/tui"
+)
+
+// version is set at build time.
+var version = "dev"
+
+func main() {
+	if err := newRoot().Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, "roundhouse:", err)
+		os.Exit(1)
+	}
+}
+
+// env is what every command needs: the starter and the sessions.
+type env struct {
+	starter starter.Starter
+}
+
+func newRoot() *cobra.Command {
+	var starterName string
+	var e env
+
+	root := &cobra.Command{
+		Use:           "roundhouse",
+		Short:         "Start new Claude Code chats and return to old ones, in any folder",
+		Version:       version,
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		PersistentPreRunE: func(*cobra.Command, []string) error {
+			cfg, err := config.Load()
+			if err != nil {
+				return err
+			}
+			if starterName != "" {
+				cfg.Starter = starterName
+			}
+			e.starter, err = cfg.ActiveStarter()
+			return err
+		},
+		RunE: func(*cobra.Command, []string) error { return e.runTUI() },
+	}
+	root.PersistentFlags().StringVar(&starterName, "starter", "", "starter to launch Claude Code with (default from config, else claude)")
+	root.AddCommand(newList(), newOpen(&e), newNew(&e))
+	return root
+}
+
+func (e *env) runTUI() error {
+	m := tui.New(scan, e.starter)
+	_, err := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion()).Run()
+	return err
+}
+
+func scan() ([]index.Session, error) {
+	dir, err := paths.ProjectsDir()
+	if err != nil {
+		return nil, err
+	}
+	return index.Scan(dir)
+}
+
+// run starts cmd attached to the terminal. A non-zero exit of the started
+// program is passed on as the exit code of roundhouse, not reported as an error.
+func run(cmd *exec.Cmd) error {
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	err := cmd.Run()
+	var exit *exec.ExitError
+	if errors.As(err, &exit) {
+		os.Exit(exit.ExitCode())
+	}
+	return err
+}
