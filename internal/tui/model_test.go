@@ -17,17 +17,31 @@ import (
 var base = time.Date(2026, 10, 10, 12, 0, 0, 0, time.UTC)
 
 type fakeFavs struct {
-	ids  map[string]bool
-	fail error
+	ids     map[string]bool
+	folders map[string]bool
+	fail    error
 }
 
 func (f *fakeFavs) Has(id string) bool { return f.ids[id] }
+
+func (f *fakeFavs) HasFolder(dir string) bool { return f.folders[dir] }
 
 func (f *fakeFavs) Toggle(id string) error {
 	if f.fail != nil {
 		return f.fail
 	}
 	f.ids[id] = !f.ids[id]
+	return nil
+}
+
+func (f *fakeFavs) ToggleFolder(dir string) error {
+	if f.fail != nil {
+		return f.fail
+	}
+	if f.folders == nil {
+		f.folders = map[string]bool{}
+	}
+	f.folders[dir] = !f.folders[dir]
 	return nil
 }
 
@@ -313,5 +327,44 @@ func TestNoLineExceedsWindowWidth(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestFavoriteFolderComesFirst(t *testing.T) {
+	favs := &fakeFavs{ids: map[string]bool{}, folders: map[string]bool{"/work/b": true}}
+	m := loadedWith(t, testSessions(), favs)
+	if got, want := outline(m), "H:/work/b 2 F H:/work/a 1 3 F"; got != want {
+		t.Errorf("items = %s, want %s", got, want)
+	}
+
+	m = press(m, "n")
+	if m.items[0].folder != "/work/b" || !m.items[0].starred {
+		t.Errorf("folder screen should list the favorite folder first, got %+v", m.items)
+	}
+}
+
+func TestStarFolderOfSelectedChat(t *testing.T) {
+	favs := &fakeFavs{ids: map[string]bool{}}
+	m := loadedWith(t, testSessions(), favs)
+	m = press(m, "down") // chat 3 in /work/a
+	m = press(m, "F")
+	if !favs.folders["/work/a"] {
+		t.Fatalf("folders = %v, want /work/a starred", favs.folders)
+	}
+	if m.items[m.cursor].session.ID != "3" {
+		t.Errorf("selection moved to %+v", m.items[m.cursor])
+	}
+}
+
+func TestStarFolderOnFolderScreen(t *testing.T) {
+	favs := &fakeFavs{ids: map[string]bool{}}
+	m := press(loadedWith(t, testSessions(), favs), "n")
+	m = press(m, "down") // second folder: /work/b
+	m = press(m, "f")
+	if !favs.folders["/work/b"] {
+		t.Fatalf("folders = %v, want /work/b starred", favs.folders)
+	}
+	if m.items[m.cursor].folder != "/work/b" || m.cursor != 0 {
+		t.Errorf("starred folder should move to the top and stay selected, cursor %d on %+v", m.cursor, m.items[m.cursor])
 	}
 }

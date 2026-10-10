@@ -124,9 +124,9 @@ func (m Model) helpLine() string {
 	case m.filtering:
 		keys = [][2]string{{"enter", "keep filter"}, {"esc", "clear"}}
 	case m.screen == foldersScreen:
-		keys = [][2]string{{"enter", "start chat here"}, {"/", "filter"}, {"esc", "back"}}
+		keys = [][2]string{{"enter", "start chat here"}, {"f", "star"}, {"/", "filter"}, {"esc", "back"}}
 	default:
-		keys = [][2]string{{"enter", "open"}, {"n", "new chat"}, {"f", "favorite"}, {"g", "group"}, {"/", "filter"}, {"r", "reload"}, {"q", "quit"}}
+		keys = [][2]string{{"enter", "open"}, {"n", "new chat"}, {"f", "star chat"}, {"F", "star folder"}, {"g", "group"}, {"/", "filter"}, {"r", "reload"}, {"q", "quit"}}
 	}
 	parts := make([]string, len(keys))
 	for i, k := range keys {
@@ -159,7 +159,7 @@ func (m Model) render(i int) []string {
 	cw := m.contentWidth()
 	var lines []string
 	if it.session == nil {
-		lines = m.card(i == m.cursor, cw, shortPath(it.folder, cw), ago(it.modTime, m.now()), it.modTime, plural(it.count, "chat"), false)
+		lines = m.card(i == m.cursor, cw, shortPath(it.folder, cw), ago(it.modTime, m.now()), it.modTime, plural(it.count, "chat"), it.starred)
 	} else {
 		s := it.session
 		lines = m.card(i == m.cursor, cw, oneLine(s.Title), ago(it.modTime, m.now()), it.modTime, m.detail(it, cw), m.favs.Has(s.ID))
@@ -183,6 +183,9 @@ func (m Model) sectionTop(it item) string {
 	label := "★ Favorites"
 	if !it.favorites {
 		label = shortPath(it.folder, m.width/2)
+		if it.starred {
+			label = "★ " + label
+		}
 	}
 	count := plural(it.count, "chat")
 	label = ansi.Truncate(label, max(1, m.width-ansi.StringWidth(count)-9), "…")

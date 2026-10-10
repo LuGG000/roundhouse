@@ -30,6 +30,8 @@ const (
 type Favorites interface {
 	Has(id string) bool
 	Toggle(id string) error
+	HasFolder(dir string) bool
+	ToggleFolder(dir string) error
 }
 
 // Scanner loads the sessions to show.
@@ -175,7 +177,9 @@ func (m Model) key(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.rebuild()
 		}
 	case "f":
-		m.toggleFavorite()
+		m.toggleFavorite(false)
+	case "F":
+		m.toggleFavorite(true)
 	case "r":
 		m.loading = true
 		return m, m.load()
@@ -227,19 +231,34 @@ func (m Model) open() (tea.Model, tea.Cmd) {
 	return m, tea.ExecProcess(cmd, func(err error) tea.Msg { return startedMsg{err} })
 }
 
-// toggleFavorite stars or unstars the selected chat and keeps it selected.
-func (m *Model) toggleFavorite() {
-	if m.screen != sessionsScreen || len(m.items) == 0 {
+// toggleFavorite stars or unstars the selected chat, or its folder when
+// folder is set. On the folder screen the selected folder is meant either
+// way. The selection stays on the same entry.
+func (m *Model) toggleFavorite(folder bool) {
+	if len(m.items) == 0 {
 		return
 	}
-	id := m.items[m.cursor].session.ID
-	if err := m.favs.Toggle(id); err != nil {
+	cur := m.items[m.cursor]
+	folder = folder || m.screen == foldersScreen
+
+	var err error
+	if folder {
+		dir := cur.folder
+		if cur.session != nil {
+			dir = cur.session.Cwd
+		}
+		err = m.favs.ToggleFolder(dir)
+	} else {
+		err = m.favs.Toggle(cur.session.ID)
+	}
+	if err != nil {
 		m.status = "could not save favorites: " + err.Error()
 		return
 	}
+
 	m.rebuild()
 	for i, it := range m.items {
-		if it.session != nil && it.session.ID == id {
+		if it.selectable() && it.sameEntry(cur) {
 			m.cursor = i
 			m.move(0)
 			break
@@ -251,9 +270,9 @@ func (m *Model) toggleFavorite() {
 func (m *Model) rebuild() {
 	q := m.filter.Value()
 	if m.screen == foldersScreen {
-		m.items = folderItems(m.sessions, q)
+		m.items = folderItems(m.sessions, q, m.favs)
 	} else {
-		m.items = sessionItems(m.sessions, q, m.grouped, m.favs.Has)
+		m.items = sessionItems(m.sessions, q, m.grouped, m.favs)
 	}
 	m.cursor, m.top = 0, 0
 	m.move(0)

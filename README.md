@@ -21,7 +21,8 @@ In the list, use the mouse or the keyboard:
 |---|---|
 | click, `enter` | open the chat (the first click selects, a click on the selected chat opens it) |
 | `n` | new chat: pick a folder |
-| `f` | star or unstar the chat; favorites get their own section at the top |
+| `f` | star or unstar the chat; favorite chats get their own section at the top |
+| `F` | star or unstar the folder of the selected chat; favorite folders are listed first |
 | `g` | group by folder or show one flat list |
 | `/` | filter by title, folder or last prompt |
 | `r` | reload |

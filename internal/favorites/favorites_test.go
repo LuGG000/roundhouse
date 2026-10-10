@@ -61,3 +61,25 @@ func TestLoadInvalid(t *testing.T) {
 		t.Error("want an error for invalid JSON")
 	}
 }
+
+func TestFoldersArePersistedSeparately(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "favorites.json")
+	s, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ToggleFolder("/work/a"); err != nil {
+		t.Fatal(err)
+	}
+	if s.Has("/work/a") {
+		t.Error("a folder must not count as a chat favorite")
+	}
+
+	again, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !again.HasFolder("/work/a") {
+		t.Error("folder favorite was not saved")
+	}
+}
