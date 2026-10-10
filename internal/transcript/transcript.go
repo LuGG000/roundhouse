@@ -47,7 +47,7 @@ func Read(path string) (Summary, error) {
 	if err != nil {
 		return s, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }() // read-only
 
 	var aiTitle string
 	sc := bufio.NewScanner(f)

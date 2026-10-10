@@ -52,8 +52,10 @@ func newList() *cobra.Command {
 				return enc.Encode(out)
 			}
 			for _, s := range sessions {
-				fmt.Fprintf(cmd.OutOrStdout(), "%s  %s  %s  %s\n",
-					s.ID, s.ModTime.Format("2006-01-02 15:04"), s.Cwd, strings.Join(strings.Fields(s.Title), " "))
+				if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s  %s  %s  %s\n",
+					s.ID, s.ModTime.Format("2006-01-02 15:04"), s.Cwd, strings.Join(strings.Fields(s.Title), " ")); err != nil {
+					return err
+				}
 			}
 			return nil
 		},
