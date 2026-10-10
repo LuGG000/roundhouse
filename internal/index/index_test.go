@@ -35,7 +35,7 @@ func TestScan(t *testing.T) {
 	write(t, root, "-a", "empty", `{"type":"mode"}`+"\n", now)
 	write(t, root, filepath.Join("-a", "old", "subagents"), "agent", chat("/a", "sub"), now)
 
-	got, err := Scan(root)
+	got, err := Scan(root, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,8 +45,49 @@ func TestScan(t *testing.T) {
 }
 
 func TestScanMissingDir(t *testing.T) {
-	got, err := Scan(filepath.Join(t.TempDir(), "none"))
+	got, err := Scan(filepath.Join(t.TempDir(), "none"), "")
 	if err != nil || len(got) != 0 {
 		t.Errorf("got %v, %v; want an empty list", got, err)
+	}
+}
+
+func TestScanUsesCacheForUnchangedFiles(t *testing.T) {
+	root := t.TempDir()
+	cachePath := filepath.Join(t.TempDir(), "cache.json")
+	when := time.Now().Add(-time.Hour).Truncate(time.Second)
+	write(t, root, "-a", "one", chat("/a", "original"), when)
+
+	if _, err := Scan(root, cachePath); err != nil {
+		t.Fatal(err)
+	}
+
+	// Same size and mtime, different content: only the cache can still say "original".
+	write(t, root, "-a", "one", chat("/a", "changed!"), when)
+	got, err := Scan(root, cachePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].Title != "original" {
+		t.Fatalf("got %+v, want the cached title", got)
+	}
+
+	// A new mtime invalidates the entry.
+	write(t, root, "-a", "one", chat("/a", "changed!"), when.Add(time.Minute))
+	got, _ = Scan(root, cachePath)
+	if got[0].Title != "changed!" {
+		t.Errorf("title = %q, want the fresh one", got[0].Title)
+	}
+}
+
+func TestScanIgnoresBrokenCache(t *testing.T) {
+	root := t.TempDir()
+	cachePath := filepath.Join(t.TempDir(), "cache.json")
+	if err := os.WriteFile(cachePath, []byte("not json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	write(t, root, "-a", "one", chat("/a", "hi"), time.Now())
+	got, err := Scan(root, cachePath)
+	if err != nil || len(got) != 1 {
+		t.Fatalf("got %v, %v", got, err)
 	}
 }

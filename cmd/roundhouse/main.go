@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
 	"github.com/LuGG000/roundhouse/internal/config"
+	"github.com/LuGG000/roundhouse/internal/favorites"
 	"github.com/LuGG000/roundhouse/internal/index"
 	"github.com/LuGG000/roundhouse/internal/paths"
 	"github.com/LuGG000/roundhouse/internal/starter"
@@ -62,8 +64,12 @@ func newRoot() *cobra.Command {
 }
 
 func (e *env) runTUI() error {
-	m := tui.New(scan, e.starter)
-	_, err := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion()).Run()
+	favs, err := openFavorites()
+	if err != nil {
+		return err
+	}
+	m := tui.New(scan, e.starter, favs)
+	_, err = tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion()).Run()
 	return err
 }
 
@@ -72,7 +78,19 @@ func scan() ([]index.Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	return index.Scan(dir)
+	data, err := paths.DataDir()
+	if err != nil {
+		return nil, err
+	}
+	return index.Scan(dir, filepath.Join(data, "index-cache.json"))
+}
+
+func openFavorites() (*favorites.Store, error) {
+	data, err := paths.DataDir()
+	if err != nil {
+		return nil, err
+	}
+	return favorites.Load(filepath.Join(data, "favorites.json"))
 }
 
 // run starts cmd attached to the terminal. A non-zero exit of the started

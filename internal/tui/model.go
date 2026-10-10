@@ -26,6 +26,12 @@ const (
 	footerLines = 2
 )
 
+// Favorites remembers starred chats.
+type Favorites interface {
+	Has(id string) bool
+	Toggle(id string) error
+}
+
 // Scanner loads the sessions to show.
 type Scanner func() ([]index.Session, error)
 
@@ -40,6 +46,7 @@ type startedMsg struct{ err error }
 type Model struct {
 	scan    Scanner
 	starter starter.Starter
+	favs    Favorites
 
 	sessions []index.Session
 	items    []item
@@ -57,11 +64,11 @@ type Model struct {
 }
 
 // New returns a model that loads its sessions on start.
-func New(scan Scanner, s starter.Starter) Model {
+func New(scan Scanner, s starter.Starter, favs Favorites) Model {
 	f := textinput.New()
 	f.Prompt = "/ "
 	f.Placeholder = "type to filter"
-	return Model{scan: scan, starter: s, filter: f, grouped: true, loading: true, now: time.Now}
+	return Model{scan: scan, starter: s, favs: favs, filter: f, grouped: true, loading: true, now: time.Now}
 }
 
 func (m Model) Init() tea.Cmd { return m.load() }
@@ -167,6 +174,8 @@ func (m Model) key(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.screen = foldersScreen
 			m.rebuild()
 		}
+	case "f":
+		m.toggleFavorite()
 	case "r":
 		m.loading = true
 		return m, m.load()
@@ -218,13 +227,33 @@ func (m Model) open() (tea.Model, tea.Cmd) {
 	return m, tea.ExecProcess(cmd, func(err error) tea.Msg { return startedMsg{err} })
 }
 
+// toggleFavorite stars or unstars the selected chat and keeps it selected.
+func (m *Model) toggleFavorite() {
+	if m.screen != sessionsScreen || len(m.items) == 0 {
+		return
+	}
+	id := m.items[m.cursor].session.ID
+	if err := m.favs.Toggle(id); err != nil {
+		m.status = "could not save favorites: " + err.Error()
+		return
+	}
+	m.rebuild()
+	for i, it := range m.items {
+		if it.session != nil && it.session.ID == id {
+			m.cursor = i
+			m.move(0)
+			break
+		}
+	}
+}
+
 // rebuild recomputes the lines after the data, filter or view changed.
 func (m *Model) rebuild() {
 	q := m.filter.Value()
 	if m.screen == foldersScreen {
 		m.items = folderItems(m.sessions, q)
 	} else {
-		m.items = sessionItems(m.sessions, q, m.grouped)
+		m.items = sessionItems(m.sessions, q, m.grouped, m.favs.Has)
 	}
 	m.cursor, m.top = 0, 0
 	m.move(0)
@@ -276,11 +305,27 @@ func (m *Model) clamp() {
 	}
 }
 
+// heightOf is the number of terminal lines item i takes. A section header is
+// one line, its footer a closing line and a gap. A chat is a title and a
+// detail line, and the selected one grows into a bordered card.
+func (m Model) heightOf(i int) int {
+	switch it := m.items[i]; {
+	case it.header:
+		return 1
+	case it.footer:
+		return 2
+	case i == m.cursor:
+		return 4
+	default:
+		return 2
+	}
+}
+
 // linesThrough is the height of items from..to, both included.
 func (m Model) linesThrough(from, to int) int {
 	n := 0
 	for i := from; i <= to; i++ {
-		n += itemHeight
+		n += m.heightOf(i)
 	}
 	return n
 }
@@ -292,10 +337,10 @@ func (m Model) itemAt(y int) int {
 		return -1
 	}
 	for i := m.top; i < len(m.items); i++ {
-		if line < itemHeight {
+		if line < m.heightOf(i) {
 			return i
 		}
-		line -= itemHeight
+		line -= m.heightOf(i)
 	}
 	return -1
 }

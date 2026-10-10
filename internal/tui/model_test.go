@@ -1,11 +1,13 @@
 package tui
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/LuGG000/roundhouse/internal/index"
 	"github.com/LuGG000/roundhouse/internal/starter"
@@ -13,6 +15,21 @@ import (
 )
 
 var base = time.Date(2026, 10, 10, 12, 0, 0, 0, time.UTC)
+
+type fakeFavs struct {
+	ids  map[string]bool
+	fail error
+}
+
+func (f *fakeFavs) Has(id string) bool { return f.ids[id] }
+
+func (f *fakeFavs) Toggle(id string) error {
+	if f.fail != nil {
+		return f.fail
+	}
+	f.ids[id] = !f.ids[id]
+	return nil
+}
 
 func session(id, cwd, title string, age time.Duration) index.Session {
 	return index.Session{
@@ -29,13 +46,18 @@ func testSessions() []index.Session {
 	}
 }
 
-func loaded(t *testing.T, sessions []index.Session) Model {
+func loadedWith(t *testing.T, sessions []index.Session, favs *fakeFavs) Model {
 	t.Helper()
-	m := New(func() ([]index.Session, error) { return sessions, nil }, starter.Builtins()[0])
+	m := New(func() ([]index.Session, error) { return sessions, nil }, starter.Builtins()[0], favs)
 	m.now = func() time.Time { return base }
-	next, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 20})
+	next, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 24})
 	next, _ = next.(Model).Update(loadedMsg{sessions: sessions})
 	return next.(Model)
+}
+
+func loaded(t *testing.T, sessions []index.Session) Model {
+	t.Helper()
+	return loadedWith(t, sessions, &fakeFavs{ids: map[string]bool{}})
 }
 
 func press(m Model, key string) Model {
@@ -54,23 +76,73 @@ func press(m Model, key string) Model {
 	return next.(Model)
 }
 
-func TestGroupedByFolderKeepsNewestFolderFirst(t *testing.T) {
-	m := loaded(t, testSessions())
+// outline describes items as H:folder, F (footer) or the session id.
+func outline(m Model) string {
 	var got []string
 	for _, it := range m.items {
-		if it.header {
+		switch {
+		case it.header && it.favorites:
+			got = append(got, "H:*")
+		case it.header:
 			got = append(got, "H:"+it.folder)
-		} else {
+		case it.footer:
+			got = append(got, "F")
+		default:
 			got = append(got, it.session.ID)
 		}
 	}
-	want := "H:/work/a 1 3 H:/work/b 2"
-	if strings.Join(got, " ") != want {
-		t.Errorf("items = %v, want %s", got, want)
+	return strings.Join(got, " ")
+}
+
+func TestGroupedByFolderKeepsNewestFolderFirst(t *testing.T) {
+	m := loaded(t, testSessions())
+	want := "H:/work/a 1 3 F H:/work/b 2 F"
+	if got := outline(m); got != want {
+		t.Errorf("items = %s, want %s", got, want)
 	}
 }
 
-func TestCursorSkipsHeaders(t *testing.T) {
+func TestFavoritesSectionComesFirst(t *testing.T) {
+	m := loadedWith(t, testSessions(), &fakeFavs{ids: map[string]bool{"2": true}})
+	want := "H:* 2 F H:/work/a 1 3 F H:/work/b 2 F"
+	if got := outline(m); got != want {
+		t.Errorf("items = %s, want %s", got, want)
+	}
+	if m.counter() != "3 chats" {
+		t.Errorf("counter = %q; a favorite listed twice must count once", m.counter())
+	}
+
+	m = press(m, "g")
+	if got := outline(m); got != "2 1 3" {
+		t.Errorf("flat items = %s, want favorites first", got)
+	}
+}
+
+func TestToggleFavoriteKeepsSelection(t *testing.T) {
+	favs := &fakeFavs{ids: map[string]bool{}}
+	m := loadedWith(t, testSessions(), favs)
+	m = press(m, "down") // chat 3
+	m = press(m, "f")
+	if !favs.ids["3"] {
+		t.Fatal("chat 3 should be a favorite")
+	}
+	if m.items[m.cursor].session.ID != "3" {
+		t.Errorf("selection moved to %+v", m.items[m.cursor])
+	}
+	if !strings.HasPrefix(outline(m), "H:* 3 F") {
+		t.Errorf("items = %s, want a favorites section first", outline(m))
+	}
+}
+
+func TestToggleFavoriteReportsFailure(t *testing.T) {
+	favs := &fakeFavs{ids: map[string]bool{}, fail: errors.New("disk full")}
+	m := press(loadedWith(t, testSessions(), favs), "f")
+	if !strings.Contains(m.status, "disk full") {
+		t.Errorf("status = %q", m.status)
+	}
+}
+
+func TestCursorSkipsHeadersAndFooters(t *testing.T) {
 	m := loaded(t, testSessions())
 	if m.items[m.cursor].session.ID != "1" {
 		t.Fatalf("cursor starts on %+v", m.items[m.cursor])
@@ -78,7 +150,7 @@ func TestCursorSkipsHeaders(t *testing.T) {
 	m = press(m, "down")
 	m = press(m, "down")
 	if m.items[m.cursor].session.ID != "2" {
-		t.Errorf("cursor on %+v, want session 2 after skipping the header", m.items[m.cursor])
+		t.Errorf("cursor on %+v, want chat 2 after skipping footer and header", m.items[m.cursor])
 	}
 }
 
@@ -88,19 +160,19 @@ func TestFilter(t *testing.T) {
 	for _, r := range "docs" {
 		m = press(m, string(r))
 	}
-	if len(m.items) != 2 || m.items[1].session.ID != "2" {
-		t.Errorf("items = %+v, want header and session 2", m.items)
+	if got := outline(m); got != "H:/work/b 2 F" {
+		t.Errorf("items = %s", got)
 	}
 	m = press(m, "esc")
-	if len(m.items) != 5 {
+	if len(m.items) != 7 {
 		t.Errorf("esc should clear the filter, got %d items", len(m.items))
 	}
 }
 
 func TestToggleGrouping(t *testing.T) {
 	m := press(loaded(t, testSessions()), "g")
-	if len(m.items) != 3 || m.items[0].header {
-		t.Errorf("flat view should list only sessions, got %+v", m.items)
+	if got := outline(m); got != "1 2 3" {
+		t.Errorf("flat view should list only chats, got %s", got)
 	}
 }
 
@@ -132,43 +204,19 @@ func TestClickSelectsThenOpens(t *testing.T) {
 		next, cmd := m.Update(tea.MouseMsg{Button: tea.MouseButtonLeft, Action: tea.MouseActionPress, Y: y})
 		return next.(Model), cmd
 	}
-	// Every item is two lines: header a, chat 1, chat 3, header b, chat 2.
-	m, cmd := click(headerLines + 4)
+	// Selected chat 1 is a four-line card: header 0, chat 1 at 1-4, chat 3 at 5-6.
+	m, cmd := click(headerLines + 5)
 	if cmd != nil || m.items[m.cursor].session.ID != "3" {
 		t.Fatalf("first click should only select chat 3, got cursor %+v", m.items[m.cursor])
 	}
-	m, _ = click(headerLines + 0) // a folder header: ignored
+	m, _ = click(headerLines + 0) // a section header: ignored
 	if m.items[m.cursor].session.ID != "3" {
 		t.Error("clicking a header must not move the cursor")
 	}
-	m, _ = click(headerLines + 5) // second line of the same chat
-
+	// Chat 3 is now the card: header 0, chat 1 at 1-2, chat 3 at 3-6.
+	m, _ = click(headerLines + 6)
 	if m.status == "" {
-		t.Error("second click on the selected row should try to open it")
-	}
-}
-
-func TestViewFitsWindow(t *testing.T) {
-	m := loaded(t, testSessions())
-	view := m.View()
-	if got := strings.Count(view, "\n") + 1; got != 20 {
-		t.Errorf("view has %d lines, want 20", got)
-	}
-	if !strings.Contains(view, "fix build") || !strings.Contains(view, "1m ago") {
-		t.Errorf("view misses content:\n%s", view)
-	}
-}
-
-func TestAgo(t *testing.T) {
-	for d, want := range map[time.Duration]string{
-		10 * time.Second: "just now",
-		5 * time.Minute:  "5m ago",
-		3 * time.Hour:    "3h ago",
-		48 * time.Hour:   "2d ago",
-	} {
-		if got := ago(base.Add(-d), base); got != want {
-			t.Errorf("ago(%v) = %q, want %q", d, got, want)
-		}
+		t.Error("second click on the selected chat should try to open it")
 	}
 }
 
@@ -184,7 +232,7 @@ func TestWheelMovesOneChatPerStep(t *testing.T) {
 	}
 	wheel(tea.MouseButtonWheelDown)
 	if m.items[m.cursor].session.ID != "2" {
-		t.Errorf("next step should skip the header to chat 2, got %+v", m.items[m.cursor])
+		t.Errorf("next step should skip footer and header to chat 2, got %+v", m.items[m.cursor])
 	}
 	wheel(tea.MouseButtonWheelUp)
 	if m.items[m.cursor].session.ID != "3" {
@@ -207,16 +255,63 @@ func TestScrollKeepsCursorVisible(t *testing.T) {
 	for i := range 30 {
 		many = append(many, session(string(rune('a'+i%26))+string(rune('a'+i/26)), "/w", "chat", time.Duration(i)*time.Minute))
 	}
-	m := loaded(t, many)
-	m.grouped = false
-	m.rebuild()
-	for range 29 {
-		m = press(m, "down")
+	for _, grouped := range []bool{true, false} {
+		m := loaded(t, many)
+		m.grouped = grouped
+		m.rebuild()
+		for range 29 {
+			m = press(m, "down")
+		}
+		if lines := m.linesThrough(m.top, m.cursor); lines > m.bodyHeight() {
+			t.Errorf("grouped=%v: cursor card is cut off: %d lines for a body of %d", grouped, lines, m.bodyHeight())
+		}
+		if got := len(strings.Split(m.View(), "\n")); got != 24 {
+			t.Errorf("grouped=%v: view has %d lines, want 24", grouped, got)
+		}
 	}
-	if m.cursor != 29 {
-		t.Fatalf("cursor = %d", m.cursor)
+}
+
+func TestViewFitsWindow(t *testing.T) {
+	m := loaded(t, testSessions())
+	view := m.View()
+	if got := strings.Count(view, "\n") + 1; got != 24 {
+		t.Errorf("view has %d lines, want 24", got)
 	}
-	if lines := m.linesThrough(m.top, m.cursor); lines > m.bodyHeight() {
-		t.Errorf("cursor item is cut off: %d lines for a body of %d", lines, m.bodyHeight())
+	for _, want := range []string{"fix build", "1m ago", "/work/a", "2 chats"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("view misses %q:\n%s", want, view)
+		}
+	}
+}
+
+func TestAgo(t *testing.T) {
+	for d, want := range map[time.Duration]string{
+		10 * time.Second: "just now",
+		5 * time.Minute:  "5m ago",
+		3 * time.Hour:    "3h ago",
+		48 * time.Hour:   "2d ago",
+	} {
+		if got := ago(base.Add(-d), base); got != want {
+			t.Errorf("ago(%v) = %q, want %q", d, got, want)
+		}
+	}
+}
+
+func TestNoLineExceedsWindowWidth(t *testing.T) {
+	favs := &fakeFavs{ids: map[string]bool{"2": true}}
+	for _, width := range []int{40, 80, 100} {
+		for _, key := range []string{"", "g", "n"} {
+			m := loadedWith(t, testSessions(), favs)
+			next, _ := m.Update(tea.WindowSizeMsg{Width: width, Height: 24})
+			m = next.(Model)
+			if key != "" {
+				m = press(m, key)
+			}
+			for i, line := range strings.Split(m.View(), "\n") {
+				if w := ansi.StringWidth(line); w > width {
+					t.Errorf("width %d, key %q, line %d is %d cells wide: %q", width, key, i, w, line)
+				}
+			}
+		}
 	}
 }

@@ -21,6 +21,7 @@ In the list, use the mouse or the keyboard:
 |---|---|
 | click, `enter` | open the chat (the first click selects, a click on the selected chat opens it) |
 | `n` | new chat: pick a folder |
+| `f` | star or unstar the chat; favorites get their own section at the top |
 | `g` | group by folder or show one flat list |
 | `/` | filter by title, folder or last prompt |
 | `r` | reload |
@@ -60,6 +61,7 @@ Switchyard links `projects/` of every profile to the default one, so all chats o
 
 - The folder of a chat is the first `cwd` in its transcript. Resuming a chat from another folder adds later lines with that other folder, but roundhouse always starts in the original one.
 - Claude Code deletes transcripts older than `cleanupPeriodDays` (30 by default). Chats removed that way are gone from the list.
+- Favorites and a cache of the chat index are kept in the data folder (`%LocalAppData%oundhouse` on Windows, `~/.local/share/roundhouse` on Linux; override with `ROUNDHOUSE_DATA_DIR`).
 - Chats are read from `CLAUDE_CONFIG_DIR/projects`, or `~/.claude/projects` when it is not set.
 - The transcript format is not documented by Anthropic. Unknown lines are ignored, but a Claude Code update can still change what roundhouse finds.
 

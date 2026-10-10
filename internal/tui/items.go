@@ -4,29 +4,29 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/LuGG000/roundhouse/internal/index"
 )
 
-// itemHeight is the number of terminal lines every item takes: a folder
-// header is a blank line and a title, a chat is a title and a detail line.
-const itemHeight = 2
-
 // item is one entry of the list.
 type item struct {
-	// header lines group sessions by folder and cannot be selected.
-	header  bool
-	session *index.Session
-	// folder is set for header lines and on the folder screen.
+	// header opens a boxed section of chats and footer closes it. Neither
+	// can be selected.
+	header, footer bool
+	// favorites marks the header of the favorites section.
+	favorites bool
+	session   *index.Session
+	// folder is set for headers and on the folder screen.
 	folder string
-	// count is the number of sessions in the folder (folder screen).
+	// count is the number of chats in the section or folder.
 	count   int
 	modTime time.Time
 }
 
-func (it item) selectable() bool { return !it.header }
+func (it item) selectable() bool { return !it.header && !it.footer }
 
 // matches reports whether every word of query occurs in the haystack.
 func matches(query string, fields ...string) bool {
@@ -39,9 +39,10 @@ func matches(query string, fields ...string) bool {
 	return true
 }
 
-// sessionItems lists the sessions matching query, optionally under a header
-// line per folder. Folders keep the order of their newest session.
-func sessionItems(sessions []index.Session, query string, grouped bool) []item {
+// sessionItems lists the sessions matching query. Grouped, the favorites come
+// first as their own section, followed by one section per folder in the order
+// of its newest chat. Flat, favorites are moved to the front of the list.
+func sessionItems(sessions []index.Session, query string, grouped bool, isFav func(id string) bool) []item {
 	var hits []*index.Session
 	for i := range sessions {
 		s := &sessions[i]
@@ -49,7 +50,9 @@ func sessionItems(sessions []index.Session, query string, grouped bool) []item {
 			hits = append(hits, s)
 		}
 	}
+
 	if !grouped {
+		sort.SliceStable(hits, func(i, j int) bool { return isFav(hits[i].ID) && !isFav(hits[j].ID) })
 		items := make([]item, len(hits))
 		for i, s := range hits {
 			items[i] = item{session: s, modTime: s.ModTime}
@@ -57,20 +60,33 @@ func sessionItems(sessions []index.Session, query string, grouped bool) []item {
 		return items
 	}
 
+	var favs []*index.Session
 	var order []string
 	byFolder := map[string][]*index.Session{}
 	for _, s := range hits {
+		if isFav(s.ID) {
+			favs = append(favs, s)
+		}
 		if _, ok := byFolder[s.Cwd]; !ok {
 			order = append(order, s.Cwd)
 		}
 		byFolder[s.Cwd] = append(byFolder[s.Cwd], s)
 	}
+
 	var items []item
-	for _, folder := range order {
-		items = append(items, item{header: true, folder: folder})
-		for _, s := range byFolder[folder] {
+	section := func(head item, chats []*index.Session) {
+		head.header, head.count = true, len(chats)
+		items = append(items, head)
+		for _, s := range chats {
 			items = append(items, item{session: s, modTime: s.ModTime})
 		}
+		items = append(items, item{footer: true})
+	}
+	if len(favs) > 0 {
+		section(item{favorites: true}, favs)
+	}
+	for _, folder := range order {
+		section(item{folder: folder}, byFolder[folder])
 	}
 	return items
 }
