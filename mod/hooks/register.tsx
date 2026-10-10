@@ -69,11 +69,6 @@ async function refreshIfOpen($: Engine): Promise<void> {
   }
 }
 
-async function loadColors($: Engine): Promise<void> {
-  const colors = parseColors(await $.store.get(COLORS_KEY))
-  await update($, colorsAtom, () => colors)
-}
-
 async function saveColors($: Engine, colors: Colors): Promise<void> {
   await $.store.set(COLORS_KEY, colors)
   await update($, colorsAtom, () => colors)
@@ -117,7 +112,6 @@ export const register: Register = on => {
       description: 'Chats of this folder: switch to one or open it in a new terminal',
       argumentHint: '[style]',
     })
-    await loadColors($)
     const started = await next(e)
     void refreshIfOpen($)
 
@@ -131,7 +125,6 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'roundhouse' }, async ($, e) => {
-    await loadColors($)
     const to: Page = e.args.trim() === 'style' ? 'style' : 'chats'
     await open($, to)
 
@@ -147,7 +140,10 @@ export const register: Register = on => {
     const shown = await read($, page)
     const chosenId = await read($, slotAtom)
     const chosen = COLOR_SLOTS.find(s => s.id === chosenId) ?? COLOR_SLOTS[0]
-    const colors = await read($, colorsAtom)
+    // The atom only redraws the pane after a change. The store is the truth, because the session state can
+    // start over (a resume) while the store stays.
+    await read($, colorsAtom)
+    const colors = parseColors(await $.store.get(COLORS_KEY))
     const p = palette(colors)
     const now = await $.clock.now()
     const rows = e.viewport?.rows ?? 24
