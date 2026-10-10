@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -11,6 +14,7 @@ import (
 
 	"github.com/LuGG000/roundhouse/internal/index"
 	"github.com/LuGG000/roundhouse/internal/starter"
+	"github.com/LuGG000/roundhouse/internal/terminal"
 )
 
 // listSchema is the version of the JSON printed by list --json.
@@ -33,6 +37,7 @@ type sessionJSON struct {
 
 func newList() *cobra.Command {
 	var asJSON bool
+	var folder string
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List chats, newest first",
@@ -41,6 +46,9 @@ func newList() *cobra.Command {
 			sessions, err := scan()
 			if err != nil {
 				return err
+			}
+			if folder != "" {
+				sessions = inFolder(sessions, folder)
 			}
 			if asJSON {
 				out := listJSON{Schema: listSchema, Sessions: make([]sessionJSON, len(sessions))}
@@ -61,11 +69,13 @@ func newList() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&asJSON, "json", false, "print machine-readable JSON")
+	cmd.Flags().StringVar(&folder, "folder", "", "list only the chats started in this folder")
 	return cmd
 }
 
 func newOpen(e *env) *cobra.Command {
-	return &cobra.Command{
+	var inTerminal bool
+	cmd := &cobra.Command{
 		Use:   "open <id>",
 		Short: "Resume a chat in its folder; the id may be a unique prefix",
 		Args:  cobra.ExactArgs(1),
@@ -82,9 +92,32 @@ func newOpen(e *env) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if inTerminal {
+				return openInTerminal(e.starter.Name, s)
+			}
 			return run(cmd)
 		},
 	}
+	cmd.Flags().BoolVar(&inTerminal, "terminal", false, "open the chat in a new terminal window and return at once")
+	return cmd
+}
+
+// openInTerminal runs "roundhouse open <id>" in a new terminal window in the
+// chat's folder, with the same starter, and does not wait for it.
+func openInTerminal(starterName string, s index.Session) error {
+	self, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	cmd, err := terminal.Command(runtime.GOOS, exec.LookPath, s.Cwd,
+		[]string{self, "open", s.ID, "--starter", starterName})
+	if err != nil {
+		return err
+	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	return cmd.Process.Release()
 }
 
 func newNew(e *env) *cobra.Command {
@@ -128,4 +161,24 @@ func find(sessions []index.Session, prefix string) (index.Session, error) {
 	default:
 		return index.Session{}, fmt.Errorf("id %q is ambiguous (%d chats)", prefix, len(hit))
 	}
+}
+
+// inFolder keeps the sessions that were started in folder.
+func inFolder(sessions []index.Session, folder string) []index.Session {
+	var out []index.Session
+	for _, s := range sessions {
+		if sameFolder(s.Cwd, folder) {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// sameFolder reports whether a and b name the same folder; Windows ignores case.
+func sameFolder(a, b string) bool {
+	a, b = filepath.Clean(a), filepath.Clean(b)
+	if runtime.GOOS == "windows" {
+		return strings.EqualFold(a, b)
+	}
+	return a == b
 }
