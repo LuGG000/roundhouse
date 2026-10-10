@@ -15,8 +15,17 @@ export type Snapshot =
   /** The command reports a schema this mod does not read. */
   | { kind: 'incompatible'; schema: number | null }
 
+/** The color the style page edits. */
+export type ColorSlot = 'background' | 'text' | 'accent' | 'border'
+
+/** The pane colors; the empty string means the default of the slot. */
+export type Colors = Record<ColorSlot, string>
+
+/** The pages of the /roundhouse pane. */
+export type Page = 'chats' | 'style'
+
 declare module 'claude-code' {
   interface PluginState {
-    'roundhouse-mod': { snapshot: Snapshot | null }
+    'roundhouse-mod': { snapshot: Snapshot | null; page: Page; slot: ColorSlot; colors: Colors }
   }
 }

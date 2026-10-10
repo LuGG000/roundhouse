@@ -7,7 +7,8 @@ One command, `/roundhouse`, opens a pane with the chats of the folder the sessio
 - **Switch here** continues in this session with that chat, as if you had typed `/resume <id>`.
 - **New window** opens the chat in a new terminal window, in its folder, with your configured roundhouse starter (so it also works through Switchyard).
 - **New chat** starts a fresh conversation in this session (`/clear`).
-- **Refresh** reads the folder again. The chat you are in is marked "this chat".
+- **Refresh** reads the folder again. The chat you are in is marked "this chat". The pane also follows a switch, a new chat and every finished turn by itself.
+- **Style** opens a page like switchyard-mod's: palettes (default, dark, light) and four colors (background, text, accent, borders) with a picker of common colors and a field for any other one (`#00ff88`, a color name, `default`, or `<slot> <color>`). It only changes this pane; the colors are kept in the mod's own store, so they survive restarts. `/roundhouse style` opens the page directly.
 
 A mod cannot change the folder of a running session, so chats of other folders are not listed here. Use `roundhouse` in a terminal for all folders.
 
@@ -34,6 +35,7 @@ claude --plugin-dir mod
 - The pane appears on the side or above the prompt, as Claude Code decides for its width. Opened with `/roundhouse` it shows at any width.
 - Chats are read through `roundhouse`, so there is no 4 MiB file limit and the list is the same as in the terminal.
 - It does not use `holdToasts`, a status line, or `--settings`, so it can sit beside other mods such as switchyard-mod.
+- With switchyard-mod loaded as well, Claude Code shows both panes as tabs with their titles (`roundhouse` and switchyard's) and you switch between them there; the mods do not know about each other.
 
 ## Development
 

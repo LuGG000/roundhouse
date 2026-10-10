@@ -1,6 +1,6 @@
 {
   "name": "roundhouse-mod",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Lists the chats of the current folder in a pane: switch to one or open it in a new terminal.",
   "author": { "name": "LuGG000" },
   "types": "./types/index.d.ts"
