@@ -1,0 +1,6 @@
+/roundhouse
+/roundhouse.exe
+/dist/
+*.test
+*.out
+.claude-plugin/types/
