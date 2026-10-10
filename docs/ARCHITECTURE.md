@@ -81,3 +81,7 @@ The pane's colors are the mod's own business: four slots (background, text, acce
 the mod's `$.store`, which lives in the Claude plugin store and survives restarts. roundhouse itself has no theme setting.
 The pane refreshes after its own actions and, while it is open, after every finished turn and at session start, so
 the "this chat" marker follows a `/resume` without a button press.
+
+The pane reads the colors from the store every time it draws. The session state (`$.state`) can start over, for
+example after a `/resume`, while the store stays, so the store is the source of truth and the state value only
+tells the pane to draw again after a change.
