@@ -1,0 +1,27 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Output of `roundhouse --version` and `claude --version`, your terminal and operating system.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output or screenshot
+      description: Remove anything private. Chat titles and folder names can be private too. Never paste credentials or tokens.
+      render: text

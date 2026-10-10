@@ -1,0 +1,74 @@
+version: 2
+project_name: roundhouse
+
+builds:
+  - main: ./cmd/roundhouse
+    env: [CGO_ENABLED=0]
+    goos: [linux, windows, darwin]
+    goarch: [amd64, arm64]
+    ldflags: ["-s -w -X main.version={{.Version}}"]
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: [LICENSE, NOTICE, THIRD_PARTY_NOTICES.md, README.md]
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github
+  format: "{{ .Message }}"
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: Fixes
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Other
+      order: 999
+  filters:
+    exclude:
+      - '^docs:'
+      - '^ci:'
+      - '^chore:'
+      - '^test:'
+      - 'dependabot'
+
+release:
+  github:
+    owner: LuGG000
+    name: roundhouse
+  footer: |
+    ## Update
+
+    ```
+    go install github.com/LuGG000/roundhouse/cmd/roundhouse@latest
+    ```
+
+    or download the archive for your system below.
+
+nfpms:
+  - id: packages
+    package_name: roundhouse
+    homepage: https://github.com/LuGG000/roundhouse
+    maintainer: LuGG000 <81622672+LuGG000@users.noreply.github.com>
+    description: Hub to start new Claude Code chats and return to old ones, in any folder
+    license: Apache-2.0
+    formats: [deb, rpm]
+    contents:
+      - src: LICENSE
+        dst: /usr/share/doc/roundhouse/LICENSE
+      - src: THIRD_PARTY_NOTICES.md
+        dst: /usr/share/doc/roundhouse/THIRD_PARTY_NOTICES.md
+
+# checksums.txt is signed keyless with cosign (sigstore); see the README for verifying it
+signs:
+  - cmd: cosign
+    artifacts: checksum
+    signature: "${artifact}.sigstore.json"
+    args: ["sign-blob", "--yes", "--bundle=${signature}", "${artifact}"]
