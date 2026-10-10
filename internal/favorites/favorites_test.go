@@ -44,6 +44,7 @@ func TestToggleRollsBackWhenSavingFails(t *testing.T) {
 	if err := os.WriteFile(parent, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
+	if err := s.Toggle("a"); err == nil {
 		t.Fatal("want an error")
 	}
 	if s.Has("a") {
