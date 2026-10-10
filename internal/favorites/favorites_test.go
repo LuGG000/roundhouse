@@ -35,16 +35,15 @@ func TestToggleIsPersisted(t *testing.T) {
 }
 
 func TestToggleRollsBackWhenSavingFails(t *testing.T) {
-	dir := t.TempDir()
-	blocker := filepath.Join(dir, "file")
-	if err := os.WriteFile(blocker, nil, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	s, err := Load(filepath.Join(blocker, "favorites.json")) // parent is a file
+	parent := filepath.Join(t.TempDir(), "data")
+	s, err := Load(filepath.Join(parent, "favorites.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := s.Toggle("a"); err == nil {
+	// A file where the data folder should be makes saving fail on every platform.
+	if err := os.WriteFile(parent, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
 		t.Fatal("want an error")
 	}
 	if s.Has("a") {
