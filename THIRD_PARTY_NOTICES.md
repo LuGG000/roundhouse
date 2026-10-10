@@ -17,7 +17,8 @@ dependency uses MIT, BSD-2-Clause, BSD-3-Clause, Apache-2.0 or ISC.
 | [github.com/charmbracelet/x/ansi](https://github.com/charmbracelet/x/blob/ansi/v0.11.8/ansi/LICENSE) | MIT |
 | [github.com/charmbracelet/x/cellbuf](https://github.com/charmbracelet/x/blob/cellbuf/v0.0.15/cellbuf/LICENSE) | MIT |
 | [github.com/charmbracelet/x/term](https://github.com/charmbracelet/x/blob/term/v0.2.2/term/LICENSE) | MIT |
-| [github.com/clipperhouse/displaywidth](https://github.com/clipperhouse/displaywidth/blob/v0.11.0/LICENSE) | MIT || [github.com/clipperhouse/uax29/v2](https://github.com/clipperhouse/uax29/blob/v2.7.0/LICENSE) | MIT |
+| [github.com/clipperhouse/displaywidth](https://github.com/clipperhouse/displaywidth/blob/v0.11.0/LICENSE) | MIT |
+| [github.com/clipperhouse/uax29/v2](https://github.com/clipperhouse/uax29/blob/v2.7.0/LICENSE) | MIT |
 | [github.com/erikgeiser/coninput](https://github.com/erikgeiser/coninput/blob/1c3628e74d0f/LICENSE) | MIT |
 | [github.com/inconshreveable/mousetrap](https://github.com/inconshreveable/mousetrap/blob/v1.1.0/LICENSE) | Apache-2.0 |
 | [github.com/lucasb-eyer/go-colorful](https://github.com/lucasb-eyer/go-colorful/blob/v1.4.0/LICENSE) | MIT |
