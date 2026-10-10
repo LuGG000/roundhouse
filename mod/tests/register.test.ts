@@ -22,15 +22,24 @@ const LIST = JSON.stringify({
 type Run = { exitCode: number; stdout: string; stderr: string }
 
 /** The world beneath the plugin: a clock, a session, `/resume` and `/clear`, and the roundhouse command. */
-function world(on: On, answer: (argv: readonly string[]) => Run | null) {
+function world(on: On, answer: (argv: readonly string[]) => Run | null, entries: Record<string, unknown> = {}) {
   const calls: string[][] = []
   const commands: { command: string; args: string }[] = []
   mock.clock(on, { now: Date.parse('2026-10-11T12:00:00Z') })
-  on('session.id', () => ({ value: 'current-1' }))
+  const store = new Map<string, unknown>(Object.entries(entries))
+  on('store.get', (_$, e) => ({ value: store.get(e.key) }))
+  on('store.set', (_$, e) => {
+    store.set(e.key, JSON.parse(JSON.stringify(e.value)))
+
+    return { value: undefined }
+  })
+  const session = { id: 'current-1' }
+  on('session.id', () => ({ value: session.id }))
   on('session.cwd', () => ({ value: '/work/repo' }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('command.run', (_$, e) => {
     commands.push({ command: e.command, args: e.args })
+    if (e.command === 'resume') session.id = e.args.trim()
 
     return { text: 'ok' }
   })
@@ -41,7 +50,7 @@ function world(on: On, answer: (argv: readonly string[]) => Run | null) {
     return run ? { value: { ...run, isStdoutTruncated: false, isStderrTruncated: false } } : { deny: 'spawn roundhouse ENOENT' }
   })
 
-  return { calls, commands }
+  return { calls, commands, session, store }
 }
 
 /** Runs a slash command as typed in the composer. */
@@ -73,13 +82,17 @@ test('the pane lists the chats of the folder and marks the current one', async (
   }
 })
 
-test('Switch here resumes the chat in this session', async ($, on) => {
+test('Switch here resumes the chat in this session and reads the folder again', async ($, on) => {
   const { commands } = world(on, () => ok(LIST))
   await runCommand($, 'roundhouse')
 
   const ui = await mount($)
   await ui.press({ key: 'switch-old-2' })
   expect(commands).toContainEqual({ command: 'resume', args: 'old-2' })
+
+  // No Refresh press needed: the pane already marks the new chat as the current one.
+  expect(await ui.find({ key: 'switch-old-2' })).toBeUndefined()
+  expect(await ui.find({ key: 'switch-current-1' })).toBeDefined()
   await ui.unmount()
 })
 
@@ -147,5 +160,56 @@ test('a failing roundhouse shows its message', async ($, on) => {
 
   const ui = await mount($)
   expect(await ui.find({ type: 'Text', text: /unreadable config/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('the style page sets a palette and keeps it in the store', async ($, on) => {
+  const { store } = world(on, () => ok(LIST))
+  await runCommand($, 'roundhouse')
+
+  const ui = await mount($)
+  await ui.press({ key: 'to-style' })
+  expect(await ui.find({ type: 'Text', text: /Palette/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /default \(claude\)/ })).toBeDefined()
+
+  await ui.press({ key: 'palette-dark' })
+  expect(store.get('colors')).toEqual({ background: '#1e1e1e', text: '#d4d4d4', accent: '#d97757', border: '#555555' })
+  expect(await ui.find({ type: 'Text', text: /#d97757/ })).toBeDefined()
+
+  await ui.press({ key: 'palette-default' })
+  expect(store.get('colors')).toEqual({ background: '', text: '', accent: '', border: '' })
+
+  await ui.press({ key: 'back' })
+  expect(await ui.find({ key: 'new-chat' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a color picked for the chosen slot is saved, and a typed one too', async ($, on) => {
+  const { store } = world(on, () => ok(LIST))
+  await runCommand($, 'roundhouse', 'style')
+
+  const ui = await mount($)
+  await ui.press({ key: 'slot-accent' })
+  await ui.press({ key: 'pick-red' })
+  expect((store.get('colors') as Record<string, string>).accent).toBe('red')
+
+  await ui.input({ key: 'custom-color', text: '00ff88' })
+  expect((store.get('colors') as Record<string, string>).accent).toBe('#00ff88')
+
+  await ui.input({ key: 'custom-color', text: 'background #101010' })
+  expect((store.get('colors') as Record<string, string>).background).toBe('#101010')
+
+  await ui.press({ key: 'pick-default' })
+  expect((store.get('colors') as Record<string, string>).accent).toBe('')
+  await ui.unmount()
+})
+
+test('the saved colors are read again when the command runs', async ($, on) => {
+  world(on, () => ok(LIST), { colors: { background: '#202020', text: '', accent: 'cyan', border: '' } })
+  await runCommand($, 'roundhouse', 'style')
+
+  const ui = await mount($)
+  expect(await ui.find({ type: 'Text', text: /#202020/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /cyan/ })).toBeDefined()
   await ui.unmount()
 })

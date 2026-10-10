@@ -45,9 +45,10 @@ Start Claude Code with `claude --plugin-dir mod` in a folder that has chats, wit
 2. **Switch here** on another chat continues this session with that chat (`/resume`); the transcript shows it.
 3. **New window** opens a terminal window in the chat's folder that shows the old conversation; closing it leaves the session alone.
 4. **New chat** starts a fresh conversation (`/clear`).
-5. **Refresh** picks up a chat created in another terminal.
+5. After **Switch here** and **New chat** the pane updates without pressing Refresh; **Refresh** also picks up a chat created in another terminal.
+   **Style** changes the palette and single colors, and they are still set after restarting Claude Code.
 6. Rename the `roundhouse` binary: the pane says it is not available and the session works as before.
-7. Together with switchyard-mod: both panes open, neither hides the other's toasts, and a limit still opens its own card.
+7. Together with switchyard-mod: both panes open as tabs you can switch between, neither hides the other's toasts, and a limit still opens its own card.
 8. The desktop app's Code tab shows the same pane.
 
 ## Platforms

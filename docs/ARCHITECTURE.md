@@ -76,3 +76,8 @@ A mod cannot restart Claude Code or change the folder of a running session, whic
 one folder only. `open --terminal` starts a new terminal window running `roundhouse open <id> --starter <name>` in the
 chat's folder (Windows Terminal, else `cmd start`; Terminal.app; or the first Linux terminal emulator found), so the
 starter, including Switchyard, is the same as in the list.
+
+The pane's colors are the mod's own business: four slots (background, text, accent, borders) kept as one JSON value in
+the mod's `$.store`, which lives in the Claude plugin store and survives restarts. roundhouse itself has no theme setting.
+The pane refreshes after its own actions and, while it is open, after every finished turn and at session start, so
+the "this chat" marker follows a `/resume` without a button press.
