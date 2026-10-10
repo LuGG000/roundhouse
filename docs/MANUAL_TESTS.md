@@ -37,6 +37,19 @@ folder for the chats you create. Run them before a release, once per platform yo
 2. The failover still works for a chat started this way (needs a profile at its limit or a simulated limit; see
    Switchyard's `docs/MANUAL_TESTS.md`).
 
+## The mod
+
+Start Claude Code with `claude --plugin-dir mod` in a folder that has chats, with the new roundhouse on the `PATH`.
+
+1. `/roundhouse` opens the pane at 100 and at 160 columns, and the chats of this folder are listed, the current one marked.
+2. **Switch here** on another chat continues this session with that chat (`/resume`); the transcript shows it.
+3. **New window** opens a terminal window in the chat's folder that shows the old conversation; closing it leaves the session alone.
+4. **New chat** starts a fresh conversation (`/clear`).
+5. **Refresh** picks up a chat created in another terminal.
+6. Rename the `roundhouse` binary: the pane says it is not available and the session works as before.
+7. Together with switchyard-mod: both panes open, neither hides the other's toasts, and a limit still opens its own card.
+8. The desktop app's Code tab shows the same pane.
+
 ## Platforms
 
 Repeat "The list" and "Starting chats" on every platform and terminal named as verified in the README
