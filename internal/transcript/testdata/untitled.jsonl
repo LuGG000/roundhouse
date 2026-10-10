@@ -1,0 +1,4 @@
+{"type":"user","message":{"role":"user","content":"x"},"cwd":"/home/u/proj","sessionId":"untitled"}
+{"type":"last-prompt","lastPrompt":"  do the thing  ","sessionId":"untitled"}
+{"type":"unknown-future-type","anything":[1,2,3]}
+not json at all

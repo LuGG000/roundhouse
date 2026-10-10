@@ -1,0 +1,7 @@
+{"type":"mode","mode":"normal","sessionId":"basic"}
+{"type":"file-history-snapshot","messageId":"m1","snapshot":{}}
+{"parentUuid":null,"type":"user","message":{"role":"user","content":"hello \"cwd\":\"C:\\\\fake\""},"cwd":"C:\\work\\repo","sessionId":"basic"}
+{"type":"last-prompt","lastPrompt":"hello","sessionId":"basic"}
+{"type":"ai-title","aiTitle":"Fix the build","sessionId":"basic"}
+{"parentUuid":"x","type":"assistant","message":{"role":"assistant","content":"ok"},"cwd":"C:\\other","sessionId":"basic"}
+{"type":"last-prompt","lastPrompt":"and now tests","sessionId":"basic"}
