@@ -42,3 +42,20 @@ full rescan, delete `index-cache.json` in the data folder (see "Configuration" i
 ## "could not save favorites"
 
 The data folder is not writable. Check its permissions, or set `ROUNDHOUSE_DATA_DIR` to a writable folder.
+
+## The mod says "roundhouse is not available"
+
+The `roundhouse` command is not on the `PATH` of the terminal Claude Code was started from, or it is older than 0.2.0
+(`list --folder` and `open --terminal` are new there). Check with `roundhouse --version`.
+
+## The mod's "Switch here" does nothing
+
+It runs `/resume <id>` as if you had typed it, once the session is idle. If a turn is still running, it waits for the end of
+the turn. Chats of other folders are not listed in the pane, because a session cannot change its folder; use
+**New window** or the terminal list.
+
+## "New window" opens nothing
+
+`roundhouse open <id> --terminal` needs Windows Terminal or `cmd` on Windows, Terminal.app on macOS, or one of
+`x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal` and `xterm` on Linux. Run the command in a shell to see
+the error.

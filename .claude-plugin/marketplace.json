@@ -1,0 +1,12 @@
+{
+  "name": "roundhouse",
+  "description": "Hub to start new Claude Code chats and return to old ones, in any folder.",
+  "owner": { "name": "LuGG000" },
+  "plugins": [
+    {
+      "name": "roundhouse-mod",
+      "source": "./mod",
+      "description": "Lists the chats of the current folder in a pane: switch to one or open it in a new terminal."
+    }
+  ]
+}
