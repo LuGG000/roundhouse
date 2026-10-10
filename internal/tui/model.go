@@ -20,9 +20,9 @@ const (
 	foldersScreen
 )
 
-// chrome lines around the list: two above, two below.
+// Chrome lines around the list: title, filter and rule above; status and help below.
 const (
-	headerLines = 2
+	headerLines = 3
 	footerLines = 2
 )
 
@@ -93,6 +93,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil && !errors.As(msg.err, &exit) {
 			m.status = "could not start: " + msg.err.Error()
 		}
+		m.screen = sessionsScreen
+		m.rebuild()
 		m.loading = true
 		return m, m.load()
 	case tea.KeyMsg:
@@ -143,9 +145,9 @@ func (m Model) key(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "down", "j":
 		m.move(1)
 	case "pgup":
-		m.move(-m.bodyHeight())
+		m.move(-m.bodyHeight() / 2)
 	case "pgdown":
-		m.move(m.bodyHeight())
+		m.move(m.bodyHeight() / 2)
 	case "home":
 		m.cursor = 0
 		m.move(0)
@@ -177,12 +179,12 @@ func (m Model) key(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) mouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case msg.Button == tea.MouseButtonWheelUp:
-		m.move(-3)
+		m.move(-1)
 	case msg.Button == tea.MouseButtonWheelDown:
-		m.move(3)
+		m.move(1)
 	case msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress:
-		i := m.top + msg.Y - headerLines
-		if msg.Y < headerLines || i >= len(m.items) || !m.items[i].selectable() {
+		i := m.itemAt(msg.Y)
+		if i < 0 || !m.items[i].selectable() {
 			return m, nil
 		}
 		if i == m.cursor {
@@ -213,7 +215,6 @@ func (m Model) open() (tea.Model, tea.Cmd) {
 		m.status = err.Error()
 		return m, nil
 	}
-	m.screen = sessionsScreen
 	return m, tea.ExecProcess(cmd, func(err error) tea.Msg { return startedMsg{err} })
 }
 
@@ -257,20 +258,46 @@ func (m *Model) move(delta int) {
 	m.clamp()
 }
 
-// clamp keeps the cursor inside the visible window.
+// clamp scrolls so that the cursor item is fully visible.
 func (m *Model) clamp() {
-	h := m.bodyHeight()
+	if len(m.items) == 0 {
+		m.top = 0
+		return
+	}
 	if m.cursor < m.top {
 		m.top = m.cursor
-		// Keep the folder header of the first visible session in view.
+		// Keep the folder header of the first visible chat in view.
 		if m.top > 0 && m.items[m.top-1].header {
 			m.top--
 		}
 	}
-	if m.cursor >= m.top+h {
-		m.top = m.cursor - h + 1
+	for m.top < m.cursor && m.linesThrough(m.top, m.cursor) > m.bodyHeight() {
+		m.top++
 	}
-	m.top = max(0, m.top)
+}
+
+// linesThrough is the height of items from..to, both included.
+func (m Model) linesThrough(from, to int) int {
+	n := 0
+	for i := from; i <= to; i++ {
+		n += itemHeight
+	}
+	return n
+}
+
+// itemAt returns the item drawn on screen line y, or -1.
+func (m Model) itemAt(y int) int {
+	line := y - headerLines
+	if line < 0 || line >= m.bodyHeight() {
+		return -1
+	}
+	for i := m.top; i < len(m.items); i++ {
+		if line < itemHeight {
+			return i
+		}
+		line -= itemHeight
+	}
+	return -1
 }
 
 func (m Model) bodyHeight() int {

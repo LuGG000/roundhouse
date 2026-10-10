@@ -132,16 +132,17 @@ func TestClickSelectsThenOpens(t *testing.T) {
 		next, cmd := m.Update(tea.MouseMsg{Button: tea.MouseButtonLeft, Action: tea.MouseActionPress, Y: y})
 		return next.(Model), cmd
 	}
-	// Body starts at line 2: header(2) "/work/a", then sessions 1, 3, header b, session 2.
-	m, cmd := click(headerLines + 2)
+	// Every item is two lines: header a, chat 1, chat 3, header b, chat 2.
+	m, cmd := click(headerLines + 4)
 	if cmd != nil || m.items[m.cursor].session.ID != "3" {
-		t.Fatalf("first click should only select session 3, got cursor %+v", m.items[m.cursor])
+		t.Fatalf("first click should only select chat 3, got cursor %+v", m.items[m.cursor])
 	}
 	m, _ = click(headerLines + 0) // a folder header: ignored
 	if m.items[m.cursor].session.ID != "3" {
 		t.Error("clicking a header must not move the cursor")
 	}
-	m, _ = click(headerLines + 2)
+	m, _ = click(headerLines + 5) // second line of the same chat
+
 	if m.status == "" {
 		t.Error("second click on the selected row should try to open it")
 	}
@@ -168,5 +169,54 @@ func TestAgo(t *testing.T) {
 		if got := ago(base.Add(-d), base); got != want {
 			t.Errorf("ago(%v) = %q, want %q", d, got, want)
 		}
+	}
+}
+
+func TestWheelMovesOneChatPerStep(t *testing.T) {
+	m := loaded(t, testSessions())
+	wheel := func(b tea.MouseButton) {
+		next, _ := m.Update(tea.MouseMsg{Button: b, Action: tea.MouseActionPress})
+		m = next.(Model)
+	}
+	wheel(tea.MouseButtonWheelDown)
+	if m.items[m.cursor].session.ID != "3" {
+		t.Errorf("one step down should reach chat 3, got %+v", m.items[m.cursor])
+	}
+	wheel(tea.MouseButtonWheelDown)
+	if m.items[m.cursor].session.ID != "2" {
+		t.Errorf("next step should skip the header to chat 2, got %+v", m.items[m.cursor])
+	}
+	wheel(tea.MouseButtonWheelUp)
+	if m.items[m.cursor].session.ID != "3" {
+		t.Errorf("one step up should return to chat 3, got %+v", m.items[m.cursor])
+	}
+}
+
+func TestViewAfterStartingFromFolderScreen(t *testing.T) {
+	m := press(loaded(t, testSessions()), "n")
+	next, _ := m.Update(startedMsg{})
+	got := next.(Model)
+	if got.screen != sessionsScreen {
+		t.Fatal("starting a chat should return to the chat list")
+	}
+	_ = got.View() // must not panic on stale folder lines
+}
+
+func TestScrollKeepsCursorVisible(t *testing.T) {
+	var many []index.Session
+	for i := range 30 {
+		many = append(many, session(string(rune('a'+i%26))+string(rune('a'+i/26)), "/w", "chat", time.Duration(i)*time.Minute))
+	}
+	m := loaded(t, many)
+	m.grouped = false
+	m.rebuild()
+	for range 29 {
+		m = press(m, "down")
+	}
+	if m.cursor != 29 {
+		t.Fatalf("cursor = %d", m.cursor)
+	}
+	if lines := m.linesThrough(m.top, m.cursor); lines > m.bodyHeight() {
+		t.Errorf("cursor item is cut off: %d lines for a body of %d", lines, m.bodyHeight())
 	}
 }

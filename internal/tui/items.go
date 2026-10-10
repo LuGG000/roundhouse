@@ -10,7 +10,11 @@ import (
 	"github.com/LuGG000/roundhouse/internal/index"
 )
 
-// item is one line of the list.
+// itemHeight is the number of terminal lines every item takes: a folder
+// header is a blank line and a title, a chat is a title and a detail line.
+const itemHeight = 2
+
+// item is one entry of the list.
 type item struct {
 	// header lines group sessions by folder and cannot be selected.
 	header  bool
