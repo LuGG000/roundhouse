@@ -213,3 +213,14 @@ test('the saved colors are read again when the command runs', async ($, on) => {
   expect(await ui.find({ type: 'Text', text: /cyan/ })).toBeDefined()
   await ui.unmount()
 })
+
+test('saved colors still apply when the session state started over, as after a resume', async ($, on) => {
+  world(on, () => ok(LIST), { colors: { background: '#202020', text: '', accent: 'cyan', border: '' } })
+
+  // No /roundhouse run in this session: the atoms hold only their initial values, the store holds the colors.
+  const ui = await mount($)
+  await ui.press({ key: 'to-style' })
+  expect(await ui.find({ type: 'Text', text: /#202020/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /cyan/ })).toBeDefined()
+  await ui.unmount()
+})
