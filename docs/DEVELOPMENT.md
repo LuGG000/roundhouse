@@ -44,6 +44,8 @@ build and a secret scan.
   new = ["cmd", "/c", "cd & echo new"]
   ```
 
+The mod has its own checks: `claude plugin validate mod` and `claude plugin test mod` (tests in `mod/tests`, run against a fake `roundhouse`), plus a strict `tsc` run over `mod/hooks`, `mod/types` and `mod/tests` with the declaration file Claude Code writes.
+
 See [MANUAL_TESTS.md](MANUAL_TESTS.md) for the checks that need a real terminal and a real `claude`.
 
 ## Releasing

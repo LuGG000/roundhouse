@@ -64,10 +64,12 @@ sha256sum --check --ignore-missing checksums.txt
 ## Usage
 
 ```
-roundhouse                 open the interactive list
-roundhouse list [--json]   print the chats, newest first
-roundhouse open <id>       resume a chat in its folder (a unique id prefix is enough)
-roundhouse new [folder]    start a new chat in a folder (default: the current one)
+roundhouse                        open the interactive list
+roundhouse list [--json]          print the chats, newest first
+                [--folder <dir>]  only the chats started in that folder
+roundhouse open <id>              resume a chat in its folder (a unique id prefix is enough)
+                [--terminal]      in a new terminal window, and return at once
+roundhouse new [folder]           start a new chat in a folder (default: the current one)
 roundhouse --version
 ```
 
@@ -142,6 +144,16 @@ touch Switchyard's profiles, settings or credentials and does not read its files
 Switchyard links `projects/` of every profile to the default one, so all chats of all profiles show
 up in the list.
 
+## Optional mod
+
+[`mod/`](mod/README.md) is a Claude Code mod. `/roundhouse` opens a pane with the chats of the folder the session runs in: switch to one with a click, open it in a new terminal window, or start a new chat. It talks to the `roundhouse` command only, so roundhouse works without it.
+
+```
+/plugin install roundhouse-mod --marketplace LuGG000/roundhouse
+```
+
+It needs roundhouse 0.2.0 or newer on the `PATH`. A mod cannot change the folder of a running session, so the pane shows one folder; the terminal list shows all of them.
+
 ## Documentation
 
 - [docs/SETUP.md](docs/SETUP.md): install and first run
@@ -150,6 +162,7 @@ up in the list.
 - [docs/SPIKE.md](docs/SPIKE.md): what was verified against the real Claude Code
 - [docs/MANUAL_TESTS.md](docs/MANUAL_TESTS.md): checks that need a real terminal
 - [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+- [mod/README.md](mod/README.md): the Claude Code mod
 
 ## Scope
 
@@ -164,6 +177,8 @@ Claude Code update can still change what roundhouse finds.
 | Interactive list in a real terminal | yes (Windows Terminal) | not yet | not yet |
 | Starting `claude` from the list | yes | not yet | not yet |
 | Starting through Switchyard | yes | not yet | not yet |
+| Mod pane in Claude Code | not yet | not yet | not yet |
+| Opening a chat in a new terminal window | not yet | not yet | not yet |
 
 WSL is not verified. Other terminals than Windows Terminal are not verified; mouse support needs a
 terminal that reports mouse events.

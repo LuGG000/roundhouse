@@ -13,6 +13,7 @@ chat is started only when you pick it.
 | `internal/favorites` | starred chats and folders in `favorites.json` |
 | `internal/starter` | builds the command that resumes a chat or starts a new one |
 | `internal/config` | loads `config.toml` and resolves the active starter |
+| `internal/terminal` | builds the command that opens a program in a new terminal window (`open --terminal`) |
 | `internal/paths` | locates the Claude, config and data folders |
 | `internal/tui` | the bubbletea model: items, layout, keys, mouse |
 
@@ -58,3 +59,20 @@ is not an error; only a failure to start it is shown.
 A starter has an argument list for resuming and one for a new chat, with the placeholders `{id}`, `{path}`
 and `{cwd}`. The command always runs with the chat's original folder as working directory. Starting fails
 with a message when that folder no longer exists.
+
+## The mod
+
+`mod/` is a Claude Code mod (a plugin with in-process hooks). It never reads transcripts and never writes files; it
+only runs the `roundhouse` command through `$.process.run`:
+
+| What the pane does | Call |
+|---|---|
+| list the chats of the session's folder | `roundhouse list --json --folder <cwd>` (schema 1) |
+| open a chat in a new window | `roundhouse open <id> --terminal` |
+| switch this session to a chat | the slash command `/resume <id>` through `$.command.run` |
+| new chat | the slash command `/clear` through `$.command.run` |
+
+A mod cannot restart Claude Code or change the folder of a running session, which is why the pane shows the chats of
+one folder only. `open --terminal` starts a new terminal window running `roundhouse open <id> --starter <name>` in the
+chat's folder (Windows Terminal, else `cmd start`; Terminal.app; or the first Linux terminal emulator found), so the
+starter, including Switchyard, is the same as in the list.
