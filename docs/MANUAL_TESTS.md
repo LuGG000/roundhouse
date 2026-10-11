@@ -62,6 +62,15 @@ Use a build with an older release number, for example `go build -ldflags "-X mai
 5. With `update_check = false` neither the list nor `list --json` mention an update, but `update --check` still works.
 6. In the mod, the pane shows the notice and **Update…**; it opens a window that asks the same question, and the pane itself changes nothing.
 
+## App launcher entry
+
+Use a throwaway profile so your own entry stays: on Windows set `APPDATA` to an empty folder, on Linux `XDG_DATA_HOME`, on macOS
+use a throwaway user.
+
+1. `roundhouse-dev shortcut install` prints the path it created and nothing else changes.
+2. Find roundhouse by name (Start menu search, the app menu of the desktop, Spotlight) and start it: a terminal window with the list opens.
+3. `roundhouse-dev shortcut remove` deletes the entry; running it again says there is nothing to remove.
+
 ## Platforms
 
 Repeat "The list" and "Starting chats" on every platform and terminal named as verified in the README
