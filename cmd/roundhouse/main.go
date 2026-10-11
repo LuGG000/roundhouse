@@ -21,10 +21,11 @@ import (
 	"github.com/LuGG000/roundhouse/internal/update"
 )
 
-// version is set at build time.
+// version is set at build time; see buildVersion.
 var version = "dev"
 
 func main() {
+	version = buildVersion()
 	if err := newRoot().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "roundhouse:", err)
 		os.Exit(1)
