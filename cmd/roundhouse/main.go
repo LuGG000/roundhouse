@@ -18,6 +18,7 @@ import (
 	"github.com/LuGG000/roundhouse/internal/paths"
 	"github.com/LuGG000/roundhouse/internal/starter"
 	"github.com/LuGG000/roundhouse/internal/tui"
+	"github.com/LuGG000/roundhouse/internal/update"
 )
 
 // version is set at build time.
@@ -30,9 +31,12 @@ func main() {
 	}
 }
 
-// env is what every command needs: the starter and the sessions.
+// env is what the commands share: the config and the starter it names. A broken
+// starter is only an error for the commands that start Claude Code.
 type env struct {
-	starter starter.Starter
+	cfg        config.Config
+	starterErr error
+	starter    starter.Starter
 }
 
 func newRoot() *cobra.Command {
@@ -53,22 +57,29 @@ func newRoot() *cobra.Command {
 			if starterName != "" {
 				cfg.Starter = starterName
 			}
-			e.starter, err = cfg.ActiveStarter()
-			return err
+			e.cfg = cfg
+			e.starter, e.starterErr = cfg.ActiveStarter()
+			if exe, err := executablePath(); err == nil {
+				update.CleanOld(exe)
+			}
+			return nil
 		},
 		RunE: func(*cobra.Command, []string) error { return e.runTUI() },
 	}
 	root.PersistentFlags().StringVar(&starterName, "starter", "", "starter to launch Claude Code with (default from config, else claude)")
-	root.AddCommand(newList(), newOpen(&e), newNew(&e), newMod())
+	root.AddCommand(newList(&e), newOpen(&e), newNew(&e), newMod(), newUpdate(&e))
 	return root
 }
 
 func (e *env) runTUI() error {
+	if e.starterErr != nil {
+		return e.starterErr
+	}
 	favs, err := openFavorites()
 	if err != nil {
 		return err
 	}
-	m := tui.New(scan, e.starter, favs)
+	m := tui.New(scan, e.starter, favs, tui.WithUpdateNotice(e.updateNotice))
 	_, err = tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion()).Run()
 	return err
 }

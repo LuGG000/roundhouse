@@ -21,7 +21,8 @@ Claude Code's own `/resume` only shows the chats of the current folder.
   Which command is used is set by a [starter](#starters), so wrappers such as
   [Switchyard](#switchyard) work too.
 - Favorites (chats and folders) and a small index cache are kept in roundhouse's own data folder.
-  Nothing is sent anywhere.
+  Your chats are never sent anywhere. The only network request is the optional daily look at the public release list
+  on GitHub (see [Updates](#updates)).
 
 ## Quick start
 
@@ -70,6 +71,8 @@ roundhouse list [--json]          print the chats, newest first
 roundhouse open <id>              resume a chat in its folder (a unique id prefix is enough)
                 [--terminal]      in a new terminal window, and return at once
 roundhouse new [folder]           start a new chat in a folder (default: the current one)
+roundhouse update                 look for a newer release; installs it only after you answer yes
+                [--check [--json]]  only look, install nothing
 roundhouse mod install            install the Claude Code mod; it is then on in every new session
 roundhouse mod uninstall          remove it again
 roundhouse --version
@@ -92,7 +95,8 @@ In the list, use the mouse or the keyboard:
 
 On the folder screen (`n`), `f` stars the selected folder and `enter` starts a new chat in it.
 
-`list --json` prints `{"schema": 1, "sessions": [...]}`; the schema number changes when fields are
+`list --json` prints `{"schema": 1, "version": "...", "update": null, "sessions": [...]}` (`update` is `{"version","url"}` when a newer
+release is known); the schema number changes when fields are
 removed or change meaning.
 
 ### Exit codes
@@ -110,6 +114,7 @@ folder with `ROUNDHOUSE_CONFIG_DIR`. Without a file the defaults apply.
 |---|---|---|
 | `starter` | name of the starter that launches Claude Code | `claude` |
 | `[[starters]]` | custom starters, see below | none |
+| `update_check` | look once a day whether a newer release exists, and say so (it never installs by itself) | `true` |
 
 Data folder (favorites, index cache): `$XDG_DATA_HOME/roundhouse`, else `%LocalAppData%\roundhouse`,
 else `~/.local/share/roundhouse`. Override with `ROUNDHOUSE_DATA_DIR`. Chats are read from
@@ -136,6 +141,28 @@ name = "wrapped"
 resume = ["my-wrapper", "--resume", "{id}"]
 new = ["my-wrapper"]
 ```
+
+## Updates
+
+Once a day roundhouse looks at the public release list of this repository on GitHub, and says in the list (a line at the bottom), in
+`list --json` and in the mod when a newer release exists. That is the only network request it makes; it sends no data of yours, only
+what any request carries (your address and a user agent). `update_check = false` in the config switches it off, and development
+builds never check.
+
+Nothing is installed by itself. `roundhouse update` shows the new version and the release notes, and installs only after you answer
+`y` at the prompt. There is no flag that skips the question, and without a terminal to answer in the command refuses. It downloads the
+archive of that exact version for your system, checks it against the `checksums.txt` of the same release, and replaces the binary; if
+anything does not match, nothing changes. The signature of `checksums.txt` is not verified by `update`, see "Verify a download".
+Programs that are already running keep the old version until they are restarted.
+
+```
+roundhouse update                  # look, then ask
+roundhouse update --check          # only look and print
+roundhouse update --check --json   # the same for scripts: {"schema":1,"current","latest","update_available","url"}
+roundhouse update --terminal       # run it in a new terminal window, where you answer
+```
+
+The mod is updated by Claude Code, not by roundhouse: `claude plugin update roundhouse-mod@roundhouse`.
 
 ## Switchyard
 

@@ -368,3 +368,35 @@ func TestStarFolderOnFolderScreen(t *testing.T) {
 		t.Errorf("starred folder should move to the top and stay selected, cursor %d on %+v", m.cursor, m.items[m.cursor])
 	}
 }
+
+func TestUpdateNoticeIsShownWhenTheLookupFindsOne(t *testing.T) {
+	m := New(func() ([]index.Session, error) { return testSessions(), nil }, starter.Builtins()[0],
+		&fakeFavs{ids: map[string]bool{}}, WithUpdateNotice(func() string { return "0.9.0" }))
+	m.now = func() time.Time { return base }
+	next, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 24})
+	next, _ = next.(Model).Update(loadedMsg{sessions: testSessions()})
+	if strings.Contains(next.(Model).View(), "is available") {
+		t.Fatal("no notice before the lookup answered")
+	}
+
+	next, _ = next.(Model).Update(noticeMsg{version: "0.9.0"})
+	view := next.(Model).View()
+	if !strings.Contains(view, "roundhouse 0.9.0 is available. Run roundhouse update") {
+		t.Errorf("notice missing:\n%s", view)
+	}
+
+	next, _ = next.(Model).Update(noticeMsg{version: ""})
+	if strings.Contains(next.(Model).View(), "is available") {
+		t.Error("an empty answer should show no notice")
+	}
+}
+
+func TestInitRunsTheLookupOnlyWhenOneIsSet(t *testing.T) {
+	plain := New(func() ([]index.Session, error) { return nil, nil }, starter.Builtins()[0], &fakeFavs{ids: map[string]bool{}})
+	if plain.Init() == nil {
+		t.Fatal("Init should still load the chats")
+	}
+	if plain.lookupNotice != nil {
+		t.Error("no lookup without the option")
+	}
+}

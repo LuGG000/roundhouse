@@ -113,6 +113,9 @@ func (m Model) statusLine() string {
 		return errStyle.Render(ansi.Truncate(strings.Repeat(" ", margin)+m.status, m.width, "…"))
 	case m.loading:
 		return dimStyle.Render(strings.Repeat(" ", margin) + "loading…")
+	case m.notice != "":
+		text := "roundhouse " + m.notice + " is available. Run roundhouse update; it asks before it changes anything."
+		return accentStyle.Render(ansi.Truncate(strings.Repeat(" ", margin)+text, m.width, "…"))
 	default:
 		return ""
 	}

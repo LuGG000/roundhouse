@@ -65,3 +65,17 @@ the error.
 The mod was loaded for one session only (`claude --plugin-dir mod`), and the new window starts a plain `claude`. Install the mod
 with `roundhouse mod install`: an installed mod is on in every new session. Check with `claude plugin list`, which should show
 `roundhouse-mod@roundhouse` as enabled.
+
+## "update needs a terminal to ask you"
+
+`roundhouse update` installs only after you answer a question, so it needs a terminal that can ask. Run it in one (or use
+`roundhouse update --terminal` to open one), or use `--check` to only look.
+
+## "update failed, nothing was changed"
+
+The download did not match its checksum, the release lacks a file for your system, or the folder of `roundhouse` is not writable (for
+example `Program Files`). Nothing is replaced in any of these cases. Download the archive from the releases page instead.
+
+## The list says a newer release is available, but I do not want to know
+
+Set `update_check = false` in `config.toml`. roundhouse then makes no network request at all.
