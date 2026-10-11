@@ -62,3 +62,18 @@ func TestInvalidTOML(t *testing.T) {
 		t.Error("want an error for invalid TOML")
 	}
 }
+
+func TestUpdateCheckIsOnUnlessSwitchedOff(t *testing.T) {
+	cfg, err := load(t, "")
+	if err != nil || !cfg.UpdateCheck {
+		t.Fatalf("default: %+v, %v; want the update check on", cfg, err)
+	}
+	cfg, err = load(t, "update_check = false")
+	if err != nil || cfg.UpdateCheck {
+		t.Fatalf("switched off: %+v, %v", cfg, err)
+	}
+	cfg, err = load(t, `starter = "claude"`)
+	if err != nil || !cfg.UpdateCheck {
+		t.Fatalf("a file without the key keeps the default: %+v, %v", cfg, err)
+	}
+}

@@ -21,7 +21,10 @@ import (
 const listSchema = 1
 
 type listJSON struct {
-	Schema   int           `json:"schema"`
+	Schema int `json:"schema"`
+	// Version is this roundhouse; Update is a newer release found by the daily check, or null.
+	Version  string        `json:"version"`
+	Update   *updateJSON   `json:"update"`
 	Sessions []sessionJSON `json:"sessions"`
 }
 
@@ -35,7 +38,7 @@ type sessionJSON struct {
 	Size       int64     `json:"size"`
 }
 
-func newList() *cobra.Command {
+func newList(e *env) *cobra.Command {
 	var asJSON bool
 	var folder string
 	cmd := &cobra.Command{
@@ -51,7 +54,10 @@ func newList() *cobra.Command {
 				sessions = inFolder(sessions, folder)
 			}
 			if asJSON {
-				out := listJSON{Schema: listSchema, Sessions: make([]sessionJSON, len(sessions))}
+				out := listJSON{Schema: listSchema, Version: version, Sessions: make([]sessionJSON, len(sessions))}
+				if rel, ok := e.availableUpdate(cmd.Context(), true); ok {
+					out.Update = &updateJSON{Version: rel.Version, URL: rel.URL}
+				}
 				for i, s := range sessions {
 					out.Sessions[i] = sessionJSON{s.ID, s.Path, s.Cwd, s.Title, s.LastPrompt, s.ModTime, s.Size}
 				}
@@ -80,6 +86,9 @@ func newOpen(e *env) *cobra.Command {
 		Short: "Resume a chat in its folder; the id may be a unique prefix",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
+			if e.starterErr != nil {
+				return e.starterErr
+			}
 			sessions, err := scan()
 			if err != nil {
 				return err
@@ -126,6 +135,9 @@ func newNew(e *env) *cobra.Command {
 		Short: "Start a new chat in a folder (default: the current folder)",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
+			if e.starterErr != nil {
+				return e.starterErr
+			}
 			dir, err := os.Getwd()
 			if len(args) == 1 {
 				dir, err = args[0], nil
