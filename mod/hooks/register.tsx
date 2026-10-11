@@ -53,13 +53,24 @@ async function load($: Engine): Promise<Snapshot> {
     return { kind: 'unavailable', reason: result.error }
   }
   const parsed = parseList(result.stdout)
+  if (parsed.kind !== 'ok') {
+    return parsed
+  }
 
-  return parsed.kind === 'ok' ? { kind: 'ok', cwd, sessionId: await $.session.id(), chats: parsed.chats } : parsed
+  return { kind: 'ok', cwd, sessionId: await $.session.id(), chats: parsed.chats, version: parsed.version, update: parsed.update }
 }
+
+/** The release the person was told about, so a session mentions each one once. */
+let announcedUpdate = ''
 
 async function refresh($: Engine): Promise<void> {
   const current = await load($)
   await update($, snapshot, () => current)
+  const newer = current.kind === 'ok' ? current.update : null
+  if (newer && newer.version !== announcedUpdate) {
+    announcedUpdate = newer.version
+    $.ui.toast(`roundhouse ${newer.version} is available. See the pane; the update asks before it changes anything.`)
+  }
 }
 
 /** Reads the chats again when the pane is open, so it follows a switch or a new chat without a press. */
@@ -88,6 +99,12 @@ async function switchTo($: Engine, chat: Chat): Promise<void> {
 async function openWindow($: Engine, chat: Chat): Promise<void> {
   const result = await run($, ['open', chat.id, '--terminal'])
   $.ui.toast('error' in result ? result.error : `Opened "${oneLine(chat.title)}" in a new terminal.`)
+}
+
+/** Opens a window that runs `roundhouse update`, where the person confirms; nothing is installed from the pane. */
+async function startUpdate($: Engine): Promise<void> {
+  const result = await run($, ['update', '--terminal'])
+  $.ui.toast('error' in result ? result.error : 'Answer the question in the new window; nothing changes before you say yes.')
 }
 
 async function startNewChat($: Engine): Promise<void> {
@@ -291,13 +308,25 @@ export const register: Register = on => {
       )
     }
 
-    const room = Math.max(1, Math.floor((rows - CHROME_ROWS) / CHAT_ROWS))
+    // The update notice takes four lines when there is one.
+    const room = Math.max(1, Math.floor((rows - CHROME_ROWS - (current.update ? 4 : 0)) / CHAT_ROWS))
     const shownChats = current.chats.slice(0, room)
     const hidden = current.chats.length - shownChats.length
 
     return (
       <Box flexDirection="column" {...fill}>
         {header}
+        {current.update && (
+          <Box flexDirection="column" marginTop={1}>
+            <Text color={p.accent}>
+              roundhouse {current.update.version} is available{current.version ? ` (you have ${current.version})` : ''}
+            </Text>
+            <Box gap={1}>
+              <Button key="update" label="Update…" onPress={() => startUpdate($)} />
+            </Box>
+            {dim('It opens a window where you confirm. Nothing changes before.')}
+          </Box>
+        )}
         <Text color={p.text} dimColor wrap="truncate-start">
           {current.cwd}
         </Text>

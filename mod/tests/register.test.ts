@@ -224,3 +224,48 @@ test('saved colors still apply when the session state started over, as after a r
   expect(await ui.find({ type: 'Text', text: /cyan/ })).toBeDefined()
   await ui.unmount()
 })
+
+const WITH_UPDATE = JSON.stringify({
+  schema: 1,
+  version: '0.2.0',
+  update: { version: '0.3.0', url: 'https://example.test/v0.3.0' },
+  sessions: JSON.parse(LIST).sessions,
+})
+
+test('the pane says when a newer roundhouse exists', async ($, on) => {
+  world(on, () => ok(WITH_UPDATE))
+  await runCommand($, 'roundhouse')
+
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await mount($, surface)
+    expect(await ui.find({ type: 'Text', text: /roundhouse 0\.3\.0 is available \(you have 0\.2\.0\)/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /Nothing changes before/ })).toBeDefined()
+    expect(await ui.find({ key: 'update' })).toBeDefined()
+    // The chats are still there.
+    expect(await ui.find({ key: 'switch-old-2' })).toBeDefined()
+    await ui.unmount()
+  }
+})
+
+test('there is no update notice for a current roundhouse', async ($, on) => {
+  world(on, () => ok(LIST))
+  await runCommand($, 'roundhouse')
+
+  const ui = await mount($)
+  expect(await ui.find({ key: 'update' })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /is available/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('Update opens a window to confirm in and installs nothing itself', async ($, on) => {
+  const { calls } = world(on, () => ok(WITH_UPDATE))
+  await runCommand($, 'roundhouse')
+
+  const ui = await mount($)
+  await ui.press({ key: 'update' })
+  expect(calls).toContainEqual(['roundhouse', 'update', '--terminal'])
+  // Never an install from the pane: no call without --terminal, no --yes.
+  expect(calls.filter(argv => argv[1] === 'update').every(argv => argv.includes('--terminal'))).toBe(true)
+  expect(calls.flat()).not.toContain('--yes')
+  await ui.unmount()
+})
