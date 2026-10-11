@@ -1,9 +1,11 @@
-import type { Chat } from '../types'
+import type { Chat, UpdateInfo } from '../types'
 
 /** The `list --json` schema this mod reads. */
 export const LIST_SCHEMA = 1
 
-export type Parsed = { kind: 'ok'; chats: Chat[] } | { kind: 'incompatible'; schema: number | null }
+export type Parsed =
+  | { kind: 'ok'; chats: Chat[]; version: string | null; update: UpdateInfo | null }
+  | { kind: 'incompatible'; schema: number | null }
 
 const isText = (value: unknown): value is string => typeof value === 'string'
 
@@ -15,7 +17,7 @@ export function parseList(stdout: string): Parsed {
   } catch {
     return { kind: 'incompatible', schema: null }
   }
-  const list = data as { schema?: unknown; sessions?: unknown }
+  const list = data as { schema?: unknown; sessions?: unknown; version?: unknown; update?: unknown }
   if (list.schema !== LIST_SCHEMA) {
     return { kind: 'incompatible', schema: typeof list.schema === 'number' ? list.schema : null }
   }
@@ -35,7 +37,7 @@ export function parseList(stdout: string): Parsed {
     }
   }
 
-  return { kind: 'ok', chats }
+  return { kind: 'ok', chats, version: isText(list.version) ? list.version : null, update: parseUpdate(list.update) }
 }
 
 /** A coarse relative time like `3h ago`; the empty string when `modified` is not a time. */
@@ -56,4 +58,14 @@ export function ago(modified: string, now: number): string {
 /** Collapses line breaks and runs of spaces, so a title fits one line. */
 export function oneLine(text: string): string {
   return text.split(/\s+/).filter(Boolean).join(' ')
+}
+
+/** The `update` field of `list --json`: a newer release, or null for none or anything unreadable. */
+function parseUpdate(value: unknown): UpdateInfo | null {
+  const update = value as { version?: unknown; url?: unknown } | null
+  if (update && isText(update.version) && update.version !== '') {
+    return { version: update.version, url: isText(update.url) ? update.url : '' }
+  }
+
+  return null
 }

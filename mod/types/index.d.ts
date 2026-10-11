@@ -7,9 +7,12 @@ export type Chat = {
   modified: string
 }
 
+/** A newer roundhouse release, from `roundhouse list --json`. */
+export type UpdateInfo = { version: string; url: string }
+
 /** What the mod knows about the chats of the session's folder. */
 export type Snapshot =
-  | { kind: 'ok'; cwd: string; sessionId: string; chats: Chat[] }
+  | { kind: 'ok'; cwd: string; sessionId: string; chats: Chat[]; version: string | null; update: UpdateInfo | null }
   /** The command is missing from PATH or failed. */
   | { kind: 'unavailable'; reason: string }
   /** The command reports a schema this mod does not read. */
