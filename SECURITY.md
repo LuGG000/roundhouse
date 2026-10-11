@@ -13,8 +13,8 @@ Chats can contain private data. roundhouse keeps only titles, folders and
 timestamps in its own cache; the cache and the favorites live in your user
 data folder and are never sent anywhere. The only network request is the daily look at the public release list
 of this repository (`update_check = false` switches it off). `roundhouse update` installs only after an explicit yes and
-checks the archive against the release's `checksums.txt`; it does not verify the signature of that file, which you can do
-with cosign (see the README).
+checks the archive against the release's `checksums.txt`. When cosign is installed it also verifies the signature of that file and
+stops if it does not verify; without cosign it says so and relies on the checksum alone (see "Verify a download" in the README).
 
 ## Supported versions
 

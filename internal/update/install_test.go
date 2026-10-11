@@ -8,9 +8,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -62,6 +64,7 @@ type release struct {
 	archive  []byte
 	checksum string
 	tag      string
+	bundle   bool // the release carries checksums.txt.sigstore.json
 }
 
 func serve(t *testing.T, goos, goarch string, archive []byte, mutate func(*release)) *release {
@@ -84,7 +87,10 @@ func serve(t *testing.T, goos, goarch string, archive []byte, mutate func(*relea
 	mux.HandleFunc("/repos/x/releases/tags/v0.3.0", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{"tag_name":"` + r.tag + `","assets":[` +
 			`{"name":"` + name + `","browser_download_url":"` + r.srv.URL + `/download/` + name + `"},` +
-			`{"name":"checksums.txt","browser_download_url":"` + r.srv.URL + `/download/checksums.txt"}]}`))
+			`{"name":"checksums.txt","browser_download_url":"` + r.srv.URL + `/download/checksums.txt"}` + bundleAsset(r) + `]}`))
+	})
+	mux.HandleFunc("/download/checksums.txt.sigstore.json", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("bundle"))
 	})
 	mux.HandleFunc("/download/checksums.txt", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(r.checksum + "  " + name + "\n"))
@@ -202,5 +208,87 @@ func TestInstallNeedsTheBinaryInsideTheArchive(t *testing.T) {
 	}
 	if got := read(t, path); got != "old" {
 		t.Errorf("the binary must stay untouched, got %q", got)
+	}
+}
+
+func bundleAsset(r *release) string {
+	if !r.bundle {
+		return ""
+	}
+
+	return `,{"name":"checksums.txt.sigstore.json","browser_download_url":"` + r.srv.URL + `/download/checksums.txt.sigstore.json"}`
+}
+
+// signed installs a release with a signature bundle through a cosign that is run by run.
+func signed(t *testing.T, run func(*exec.Cmd) error) (string, []string, error) {
+	t.Helper()
+	r := serve(t, "linux", "amd64", tarGzOf(t, "roundhouse", []byte("new")), func(r *release) { r.bundle = true })
+	in := r.installer("linux", "amd64")
+	var notices []string
+	in.Cosign, in.Run, in.Notice = "cosign", run, func(s string) { notices = append(notices, s) }
+	dst := target(t)
+	err := in.Install(context.Background(), "0.3.0", dst)
+	got, _ := os.ReadFile(dst)
+
+	return string(got), notices, err
+}
+
+func TestInstallVerifiesTheSignatureWithCosign(t *testing.T) {
+	var args []string
+	got, notices, err := signed(t, func(c *exec.Cmd) error {
+		args = c.Args
+		b, readErr := os.ReadFile(c.Args[2]) // the checksums file, read while it still exists
+		if readErr != nil || !strings.Contains(string(b), "roundhouse_0.3.0_linux_amd64.tar.gz") {
+			t.Errorf("cosign got no checksums file: %v", readErr)
+		}
+		return nil
+	})
+	if err != nil || got != "new" {
+		t.Fatalf("err = %v, binary = %q", err, got)
+	}
+	line := strings.Join(args, " ")
+	for _, want := range []string{"verify-blob", "--bundle", "--certificate-identity-regexp ^https://github.com/LuGG000/roundhouse/", "--certificate-oidc-issuer https://token.actions.githubusercontent.com"} {
+		if !strings.Contains(line, want) {
+			t.Errorf("cosign line misses %q: %s", want, line)
+		}
+	}
+	if len(notices) != 1 || !strings.Contains(notices[0], "verified") {
+		t.Errorf("notices = %q", notices)
+	}
+}
+
+func TestInstallStopsWhenCosignRejectsTheSignature(t *testing.T) {
+	got, _, err := signed(t, func(*exec.Cmd) error { return errors.New("no matching signature") })
+	if err == nil || !strings.Contains(err.Error(), "no matching signature") {
+		t.Fatalf("err = %v", err)
+	}
+	if got != "old" {
+		t.Errorf("binary = %q, want it untouched", got)
+	}
+}
+
+func TestInstallWithCosignNeedsTheSignatureBundle(t *testing.T) {
+	r := serve(t, "linux", "amd64", tarGzOf(t, "roundhouse", []byte("new")), nil)
+	in := r.installer("linux", "amd64")
+	in.Cosign, in.Run = "cosign", func(*exec.Cmd) error { t.Error("cosign ran"); return nil }
+	dst := target(t)
+	if err := in.Install(context.Background(), "0.3.0", dst); err == nil || !strings.Contains(err.Error(), "sigstore.json") {
+		t.Fatalf("err = %v", err)
+	}
+	if got, _ := os.ReadFile(dst); string(got) != "old" {
+		t.Errorf("binary = %q, want it untouched", got)
+	}
+}
+
+func TestInstallWithoutCosignSaysTheSignatureWasNotChecked(t *testing.T) {
+	r := serve(t, "linux", "amd64", tarGzOf(t, "roundhouse", []byte("new")), nil)
+	in := r.installer("linux", "amd64")
+	var notices []string
+	in.Notice = func(s string) { notices = append(notices, s) }
+	if err := in.Install(context.Background(), "0.3.0", target(t)); err != nil {
+		t.Fatal(err)
+	}
+	if len(notices) != 1 || !strings.Contains(notices[0], "not checked") {
+		t.Errorf("notices = %q", notices)
 	}
 }

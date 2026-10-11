@@ -59,7 +59,7 @@ Each release has `checksums.txt` with the SHA-256 of every file and a keyless
 
 ```
 cosign verify-blob checksums.txt --bundle checksums.txt.sigstore.json \
-  --certificate-identity-regexp '^https://github.com/LuGG000/roundhouse/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-identity-regexp '^https://github.com/LuGG000/roundhouse/\.github/workflows/release\.yml@refs/tags/v.*$' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 sha256sum --check --ignore-missing checksums.txt
 ```
@@ -156,7 +156,7 @@ builds never check.
 Nothing is installed by itself. `roundhouse update` shows the new version and the release notes, and installs only after you answer
 `y` at the prompt. There is no flag that skips the question, and without a terminal to answer in the command refuses. It downloads the
 archive of that exact version for your system, checks it against the `checksums.txt` of the same release, and replaces the binary; if
-anything does not match, nothing changes. The signature of `checksums.txt` is not verified by `update`, see "Verify a download".
+anything does not match, nothing changes. If [cosign](https://github.com/sigstore/cosign) is installed, `update` also verifies the signature of `checksums.txt` first (cosign fetches the Sigstore trust data from the network for that) and stops when it does not verify; without cosign it says the signature was not checked, see "Verify a download".
 Programs that are already running keep the old version until they are restarted.
 
 ```
