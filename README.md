@@ -70,6 +70,8 @@ roundhouse list [--json]          print the chats, newest first
 roundhouse open <id>              resume a chat in its folder (a unique id prefix is enough)
                 [--terminal]      in a new terminal window, and return at once
 roundhouse new [folder]           start a new chat in a folder (default: the current one)
+roundhouse mod install            install the Claude Code mod; it is then on in every new session
+roundhouse mod uninstall          remove it again
 roundhouse --version
 ```
 
@@ -149,10 +151,10 @@ up in the list.
 [`mod/`](mod/README.md) is a Claude Code mod. `/roundhouse` opens a pane with the chats of the folder the session runs in: switch to one with a click, open it in a new terminal window, or start a new chat. It talks to the `roundhouse` command only, so roundhouse works without it.
 
 ```
-/plugin install roundhouse-mod --marketplace LuGG000/roundhouse
+roundhouse mod install
 ```
 
-It needs roundhouse 0.2.0 or newer on the `PATH`. A mod cannot change the folder of a running session, so the pane shows one folder; the terminal list shows all of them.
+It needs roundhouse 0.2.0 or newer on the `PATH`. Once installed it is on in every new Claude Code session; `roundhouse mod uninstall` switches it off. A mod cannot change the folder of a running session, so the pane shows one folder; the terminal list shows all of them.
 
 ## Documentation
 

@@ -59,3 +59,9 @@ the turn. Chats of other folders are not listed in the pane, because a session c
 `roundhouse open <id> --terminal` needs Windows Terminal or `cmd` on Windows, Terminal.app on macOS, or one of
 `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal` and `xterm` on Linux. Run the command in a shell to see
 the error.
+
+## `/roundhouse` is missing in a chat opened with "New window"
+
+The mod was loaded for one session only (`claude --plugin-dir mod`), and the new window starts a plain `claude`. Install the mod
+with `roundhouse mod install`: an installed mod is on in every new session. Check with `claude plugin list`, which should show
+`roundhouse-mod@roundhouse` as enabled.
