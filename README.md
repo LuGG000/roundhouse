@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/LuGG000/roundhouse/actions/workflows/ci.yml/badge.svg)](https://github.com/LuGG000/roundhouse/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/LuGG000/roundhouse)](https://github.com/LuGG000/roundhouse/releases/latest)
-[![License](https://img.shields.io/github/license/LuGG000/roundhouse)](LICENSE)
+[![License](https://img.shields.io/github/license/LuGG000/roundhouse?label=license)](LICENSE)
 
 Open-source hub for [Claude Code](https://code.claude.com): one list of all your chats, grouped by
 folder. Start a new chat or return to an old one in any folder, with the mouse or the keyboard.
