@@ -4,3 +4,5 @@
 *.test
 *.out
 .claude-plugin/types/
+/roundhouse-dev
+/roundhouse-dev.exe
