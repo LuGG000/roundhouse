@@ -54,7 +54,7 @@ Keep the roundhouse you work with every day apart from the one you build, so tha
 
 - **Daily use** is a release: download the archive for your system from the releases page, check it against `checksums.txt`, and put
   `roundhouse` in a fixed folder on your `PATH` (on Windows for example `%LocalAppData%\Programs\roundhouse`). `roundhouse --version`
-  shows the release. Update it by downloading the next archive. Install the mod with `roundhouse mod install`, which takes it from
+  shows the release. Update it with `roundhouse update`, which asks first, or by downloading the next archive. Install the mod with `roundhouse mod install`, which takes it from
   GitHub, so it is the published one too.
 - **Do not run `go install ./cmd/roundhouse`** on that machine: it puts a development build into `GOPATH/bin`, which then
   shadows or replaces the release.

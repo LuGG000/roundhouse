@@ -23,11 +23,14 @@ type Config struct {
 	Starter string `toml:"starter"`
 	// Starters adds custom starters or overrides built-in ones by name.
 	Starters []starter.Starter `toml:"starters"`
+	// UpdateCheck lets roundhouse look up once a day whether a newer release exists and say so. It
+	// never installs anything; the update command does that after you confirm.
+	UpdateCheck bool `toml:"update_check"`
 }
 
 // Default returns the configuration used when no file exists.
 func Default() Config {
-	return Config{Starter: starter.Claude}
+	return Config{Starter: starter.Claude, UpdateCheck: true}
 }
 
 // Load reads the config file; a missing file yields the defaults.

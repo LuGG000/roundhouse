@@ -44,6 +44,18 @@ type loadedMsg struct {
 
 type startedMsg struct{ err error }
 
+// noticeMsg carries the version of a newer release, found by the update check.
+type noticeMsg struct{ version string }
+
+// Option changes how the model is built.
+type Option func(*Model)
+
+// WithUpdateNotice sets a lookup that returns the version of a newer release, or the empty
+// string. It runs in the background once, and the list mentions the version if there is one.
+func WithUpdateNotice(lookup func() string) Option {
+	return func(m *Model) { m.lookupNotice = lookup }
+}
+
 // Model is the bubbletea model of the hub.
 type Model struct {
 	scan    Scanner
@@ -63,17 +75,33 @@ type Model struct {
 	status        string
 	loading       bool
 	now           func() time.Time
+
+	lookupNotice func() string
+	notice       string
 }
 
 // New returns a model that loads its sessions on start.
-func New(scan Scanner, s starter.Starter, favs Favorites) Model {
+func New(scan Scanner, s starter.Starter, favs Favorites, opts ...Option) Model {
 	f := textinput.New()
 	f.Prompt = "/ "
 	f.Placeholder = "type to filter"
-	return Model{scan: scan, starter: s, favs: favs, filter: f, grouped: true, loading: true, now: time.Now}
+	m := Model{scan: scan, starter: s, favs: favs, filter: f, grouped: true, loading: true, now: time.Now}
+	for _, opt := range opts {
+		opt(&m)
+	}
+	return m
 }
 
-func (m Model) Init() tea.Cmd { return m.load() }
+func (m Model) Init() tea.Cmd {
+	if m.lookupNotice == nil {
+		return m.load()
+	}
+	return tea.Batch(m.load(), m.checkNotice())
+}
+
+func (m Model) checkNotice() tea.Cmd {
+	return func() tea.Msg { return noticeMsg{version: m.lookupNotice()} }
+}
 
 func (m Model) load() tea.Cmd {
 	return func() tea.Msg {
@@ -95,6 +123,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.sessions = msg.sessions
 		m.rebuild()
+	case noticeMsg:
+		m.notice = msg.version
 	case startedMsg:
 		// A non-zero exit of claude is not an error; only a failure to
 		// start the command is.

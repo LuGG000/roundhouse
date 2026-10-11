@@ -63,3 +63,9 @@ roundhouse mod install
 adds the roundhouse marketplace to Claude Code and installs `roundhouse-mod` from it. From then on `/roundhouse` is available in every new
 Claude Code session, also in chats you open from the list or from the mod's **New window**. Leave it out, or run
 `roundhouse mod uninstall`, if you do not want it; roundhouse works the same without it. See [mod/README.md](../mod/README.md).
+
+## Updating
+
+roundhouse tells you when a newer release exists (see "Updates" in the README). `roundhouse update` shows it and installs it after you
+answer yes; or download the archive yourself as in "Install". The mod is updated by Claude Code:
+`claude plugin update roundhouse-mod@roundhouse`.

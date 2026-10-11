@@ -51,6 +51,17 @@ Start Claude Code with `claude --plugin-dir mod` in a folder that has chats, wit
 7. Together with switchyard-mod: both panes open as tabs you can switch between, neither hides the other's toasts, and a limit still opens its own card.
 8. The desktop app's Code tab shows the same pane.
 
+## Updates
+
+Use a build with an older release number, for example `go build -ldflags "-X main.version=0.1.0" -o roundhouse-dev ./cmd/roundhouse`, with a throwaway `ROUNDHOUSE_DATA_DIR`.
+
+1. `roundhouse-dev update --check` names the latest release and says you have the older one; `--check --json` prints the same as JSON.
+2. `roundhouse-dev` shows a line at the bottom of the list that a newer release is available, and nothing else changes.
+3. `roundhouse-dev update` shows the version, the notes link and the path it would replace, then asks. Answer `n`, press Enter or close the window: nothing changes. Piping an answer (`echo y | roundhouse-dev update`) is refused.
+4. Answer `y`: the binary is replaced, `--version` shows the new number, and on Windows `roundhouse.exe.old` is gone at the next start.
+5. With `update_check = false` neither the list nor `list --json` mention an update, but `update --check` still works.
+6. In the mod, the pane shows the notice and **Update…**; it opens a window that asks the same question, and the pane itself changes nothing.
+
 ## Platforms
 
 Repeat "The list" and "Starting chats" on every platform and terminal named as verified in the README

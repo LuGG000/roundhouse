@@ -11,7 +11,10 @@ and when a credential-like file is tracked.
 
 Chats can contain private data. roundhouse keeps only titles, folders and
 timestamps in its own cache; the cache and the favorites live in your user
-data folder and are never sent anywhere.
+data folder and are never sent anywhere. The only network request is the daily look at the public release list
+of this repository (`update_check = false` switches it off). `roundhouse update` installs only after an explicit yes and
+checks the archive against the release's `checksums.txt`; it does not verify the signature of that file, which you can do
+with cosign (see the README).
 
 ## Supported versions
 
