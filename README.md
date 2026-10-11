@@ -45,9 +45,9 @@ From source (Go 1.26 or newer):
 go install github.com/LuGG000/roundhouse/cmd/roundhouse@latest
 ```
 
-Prebuilt archives for Linux, macOS and Windows (amd64, arm64) and `.deb` and `.rpm` packages are
-built by the release workflow and will be on the
-[releases page](https://github.com/LuGG000/roundhouse/releases) from the first release on.
+Or download the archive for Linux, macOS or Windows (amd64, arm64) from the
+[releases page](https://github.com/LuGG000/roundhouse/releases), unpack it and put `roundhouse` on your `PATH`.
+Linux releases also ship `.deb` and `.rpm` packages.
 
 ### Verify a download
 
@@ -179,8 +179,9 @@ Claude Code update can still change what roundhouse finds.
 | Interactive list in a real terminal | yes (Windows Terminal) | not yet | not yet |
 | Starting `claude` from the list | yes | not yet | not yet |
 | Starting through Switchyard | yes | not yet | not yet |
-| Mod pane in Claude Code | not yet | not yet | not yet |
-| Opening a chat in a new terminal window | not yet | not yet | not yet |
+| Mod pane in Claude Code (switch, new chat, style) | yes (Windows Terminal) | not yet | not yet |
+| Opening a chat in a new terminal window | yes (Windows Terminal) | not yet | not yet |
+| `mod install` and `mod uninstall` | yes (tried with a throwaway Claude config) | not yet | not yet |
 
 WSL is not verified. Other terminals than Windows Terminal are not verified; mouse support needs a
 terminal that reports mouse events.
