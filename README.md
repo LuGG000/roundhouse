@@ -75,6 +75,8 @@ roundhouse update                 look for a newer release; installs it only aft
                 [--check [--json]]  only look, install nothing
 roundhouse mod install            install the Claude Code mod; it is then on in every new session
 roundhouse mod uninstall          remove it again
+roundhouse shortcut install       add roundhouse to the app launcher (Start menu, desktop entry, ~/Applications)
+roundhouse shortcut remove        remove that entry again
 roundhouse --version
 ```
 
@@ -209,6 +211,7 @@ Claude Code update can still change what roundhouse finds.
 | Mod pane in Claude Code (switch, new chat, style) | yes (Windows Terminal) | not yet | not yet |
 | Opening a chat in a new terminal window | yes (Windows Terminal) | not yet | not yet |
 | `mod install` and `mod uninstall` | yes (tried with a throwaway Claude config) | not yet | not yet |
+| `shortcut install` and `shortcut remove` | yes (Start menu entry created, started and removed) | not yet | not yet |
 
 WSL is not verified. Other terminals than Windows Terminal are not verified; mouse support needs a
 terminal that reports mouse events.
@@ -228,8 +231,9 @@ terminal that reports mouse events.
 
 ## Uninstall
 
-Remove the binary and, if you want, the config and data folders named under
-[Configuration](#configuration). roundhouse changes nothing else on your system.
+Run `roundhouse shortcut remove` if you added the app launcher entry, then remove the binary and, if you
+want, the config and data folders named under [Configuration](#configuration). Apart from the entry and the
+optional mod, roundhouse changes nothing else on your system.
 
 ## License
 

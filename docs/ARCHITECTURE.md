@@ -14,6 +14,7 @@ chat is started only when you pick it.
 | `internal/starter` | builds the command that resumes a chat or starts a new one |
 | `internal/config` | loads `config.toml` and resolves the active starter |
 | `internal/terminal` | builds the command that opens a program in a new terminal window (`open --terminal`) |
+| `internal/shortcut` | writes and removes the application launcher entry (`shortcut install`): `.lnk`, `.desktop` file or `.app` bundle |
 | `internal/update` | finds the latest release (cached for a day) and installs a chosen version after checking its checksum |
 | `internal/paths` | locates the Claude, config and data folders |
 | `internal/tui` | the bubbletea model: items, layout, keys, mouse |

@@ -67,7 +67,7 @@ func newRoot() *cobra.Command {
 		RunE: func(*cobra.Command, []string) error { return e.runTUI() },
 	}
 	root.PersistentFlags().StringVar(&starterName, "starter", "", "starter to launch Claude Code with (default from config, else claude)")
-	root.AddCommand(newList(&e), newOpen(&e), newNew(&e), newMod(), newUpdate(&e))
+	root.AddCommand(newList(&e), newOpen(&e), newNew(&e), newMod(), newShortcut(), newUpdate(&e))
 	return root
 }
 

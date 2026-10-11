@@ -52,7 +52,17 @@ starter = "switchyard"
 ## Start it from anywhere
 
 The list always starts chats in their own folder, so you can run `roundhouse` from any folder. For a quick
-way to open it, bind `roundhouse` to a shortcut or a Windows Terminal profile, or add an alias in your shell.
+way to open it, run
+
+```
+roundhouse shortcut install
+```
+
+which adds roundhouse to the app launcher of your user account, so you can find it by name and start it like any other app:
+a Start menu shortcut on Windows (it opens Windows Terminal when installed), a desktop entry on Linux, and an app in
+`~/Applications` on macOS. The entry points at the binary you ran the command with. Updating in place keeps it working;
+run the command again if you move the binary. `roundhouse shortcut remove` deletes the entry. It writes only that one entry,
+needs no admin rights and changes nothing else.
 
 ## The optional mod
 
