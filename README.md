@@ -1,3 +1,5 @@
+<img src="docs/logo.svg" alt="roundhouse logo" width="96" align="right">
+
 # roundhouse
 
 [![CI](https://github.com/LuGG000/roundhouse/actions/workflows/ci.yml/badge.svg)](https://github.com/LuGG000/roundhouse/actions/workflows/ci.yml)

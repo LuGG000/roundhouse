@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="roundhouse logo: a railway turntable">
+  <rect width="256" height="256" rx="56" fill="#1f2937"/>
+  <g stroke="#f59e0b" stroke-width="16" stroke-linecap="round">
+    <line x1="204" y1="128" x2="232" y2="128"/>
+    <line x1="52" y1="128" x2="24" y2="128"/>
+    <line x1="74.26" y1="74.26" x2="54.46" y2="54.46"/>
+    <line x1="128" y1="52" x2="128" y2="24"/>
+    <line x1="181.74" y1="74.26" x2="201.54" y2="54.46"/>
+  </g>
+  <line x1="72.85" y1="183.15" x2="48.8" y2="207.2" stroke="#f9fafb" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="128" cy="128" r="62" fill="none" stroke="#f59e0b" stroke-width="14"/>
+  <line x1="84" y1="172" x2="172" y2="84" stroke="#f9fafb" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="128" cy="128" r="12" fill="#f59e0b"/>
+</svg>

@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/LuGG000/roundhouse/internal/paths"
 	"github.com/LuGG000/roundhouse/internal/shortcut"
 )
 
@@ -72,16 +73,21 @@ func shortcutEnv() (shortcut.Env, error) {
 	if err != nil {
 		return shortcut.Env{}, err
 	}
+	data, err := paths.DataDir()
+	if err != nil {
+		return shortcut.Env{}, err
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return shortcut.Env{}, err
 	}
 	return shortcut.Env{
-		GOOS:   runtime.GOOS,
-		Exe:    exe,
-		Home:   home,
-		Getenv: os.Getenv,
-		Look:   exec.LookPath,
-		Run:    func(c *exec.Cmd) error { return c.Run() },
+		GOOS:    runtime.GOOS,
+		Exe:     exe,
+		Home:    home,
+		DataDir: data,
+		Getenv:  os.Getenv,
+		Look:    exec.LookPath,
+		Run:     func(c *exec.Cmd) error { return c.Run() },
 	}, nil
 }
