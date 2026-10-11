@@ -39,7 +39,7 @@ folder for the chats you create. Run them before a release, once per platform yo
 
 ## The mod
 
-Start Claude Code with `claude --plugin-dir mod` in a folder that has chats, with the new roundhouse on the `PATH`.
+Start Claude Code with `claude --plugin-dir mod` in a folder that has chats, with the new roundhouse on the `PATH`. Then, with a throwaway Claude config (`CLAUDE_CONFIG_DIR` set to an empty folder): `roundhouse mod install --source .` shows the mod as enabled in `claude plugin list`, a new `claude` session has `/roundhouse`, and `roundhouse mod uninstall` removes it again.
 
 1. `/roundhouse` opens the pane at 100 and at 160 columns, and the chats of this folder are listed, the current one marked.
 2. **Switch here** on another chat continues this session with that chat (`/resume`); the transcript shows it.

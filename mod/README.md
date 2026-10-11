@@ -19,12 +19,15 @@ If `roundhouse` is missing from `PATH` or reports a `list` schema the mod does n
 You need roundhouse 0.2.0 or newer on your `PATH` (`roundhouse list --folder` and `roundhouse open --terminal` are new there) and Claude Code 2.1.287 or newer, in the terminal or in the Code tab of the desktop app.
 
 ```
-/plugin install roundhouse-mod --marketplace LuGG000/roundhouse
+roundhouse mod install      # or, inside Claude Code: /plugin install roundhouse-mod --marketplace LuGG000/roundhouse
+roundhouse mod uninstall    # switch it off again
 ```
+
+The mod is optional, and installing it is the switch: an installed mod is on in every Claude Code session you start from then on, in every Switchyard profile too (the plugins folder is shared), so a chat you open with **New window** has `/roundhouse` as well. Remove it with `roundhouse mod uninstall`, or turn it off for a while with `/plugin` inside Claude Code. `roundhouse mod install --source <path>` installs from a local checkout; `--scope project` limits it to one project.
 
 Mods are not sandboxed and run with your user rights; this one only starts the `roundhouse` command and the slash commands named above.
 
-To try it from a clone without installing:
+To try it from a clone in one session only (a chat opened with **New window** will not have it then):
 
 ```
 claude --plugin-dir mod

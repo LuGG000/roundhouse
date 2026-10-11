@@ -53,3 +53,13 @@ starter = "switchyard"
 
 The list always starts chats in their own folder, so you can run `roundhouse` from any folder. For a quick
 way to open it, bind `roundhouse` to a shortcut or a Windows Terminal profile, or add an alias in your shell.
+
+## The optional mod
+
+```
+roundhouse mod install
+```
+
+adds the roundhouse marketplace to Claude Code and installs `roundhouse-mod` from it. From then on `/roundhouse` is available in every new
+Claude Code session, also in chats you open from the list or from the mod's **New window**. Leave it out, or run
+`roundhouse mod uninstall`, if you do not want it; roundhouse works the same without it. See [mod/README.md](../mod/README.md).
