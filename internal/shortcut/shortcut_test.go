@@ -24,12 +24,13 @@ func has(names ...string) func(string) (string, error) {
 func env(goos, home string, look func(string) (string, error)) (Env, *[]*exec.Cmd) {
 	var ran []*exec.Cmd
 	return Env{
-		GOOS:   goos,
-		Exe:    "/opt/round house/roundhouse",
-		Home:   home,
-		Getenv: func(string) string { return "" },
-		Look:   look,
-		Run:    func(c *exec.Cmd) error { ran = append(ran, c); return nil },
+		GOOS:    goos,
+		Exe:     "/opt/round house/roundhouse",
+		Home:    home,
+		DataDir: filepath.Join(home, "data"),
+		Getenv:  func(string) string { return "" },
+		Look:    look,
+		Run:     func(c *exec.Cmd) error { ran = append(ran, c); return nil },
 	}, &ran
 }
 
@@ -48,6 +49,22 @@ func TestLinuxWritesADesktopEntryThatRunsInATerminal(t *testing.T) {
 		if !strings.Contains(string(b), want) {
 			t.Errorf("entry misses %q:\n%s", want, b)
 		}
+	}
+}
+
+func TestLinuxEntryPointsAtItsIcon(t *testing.T) {
+	home := t.TempDir()
+	e, _ := env("linux", home, has())
+	path, err := Install(e)
+	if err != nil {
+		t.Fatal(err)
+	}
+	icon := filepath.Join(home, ".local", "share", "icons", "hicolor", "256x256", "apps", "roundhouse.png")
+	if b, err := os.ReadFile(icon); err != nil || !strings.HasPrefix(string(b), "\x89PNG") {
+		t.Fatalf("icon %s: %v", icon, err)
+	}
+	if entry, _ := os.ReadFile(path); !strings.Contains(string(entry), "Icon="+icon+"\n") {
+		t.Errorf("entry does not name the icon:\n%s", entry)
 	}
 }
 
@@ -102,6 +119,9 @@ func TestDarwinWritesAnAppBundleWithAnExecutableLauncher(t *testing.T) {
 			t.Errorf("launcher misses %q:\n%s", want, b)
 		}
 	}
+	if b, err := os.ReadFile(filepath.Join(path, "Contents", "Resources", "roundhouse.icns")); err != nil || !strings.HasPrefix(string(b), "icns") {
+		t.Errorf("icon file is missing or not an .icns: %v", err)
+	}
 	plist, _ := os.ReadFile(filepath.Join(path, "Contents", "Info.plist"))
 	if !strings.Contains(string(plist), "<string>"+darwinLauncher+"</string>") {
 		t.Errorf("Info.plist does not name the launcher:\n%s", plist)
@@ -119,6 +139,9 @@ func TestWindowsCreatesTheStartMenuShortcutThroughPowerShell(t *testing.T) {
 	if want := filepath.Join(home, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "roundhouse.lnk"); path != want {
 		t.Fatalf("path = %s, want %s", path, want)
 	}
+	if b, err := os.ReadFile(filepath.Join(home, "data", "roundhouse.ico")); err != nil || len(b) < 6 || b[2] != 1 {
+		t.Errorf("icon file is missing or not an .ico: %v", err)
+	}
 	if len(*ran) != 1 {
 		t.Fatalf("ran %d commands, want 1", len(*ran))
 	}
@@ -128,6 +151,7 @@ func TestWindowsCreatesTheStartMenuShortcutThroughPowerShell(t *testing.T) {
 		"$s.TargetPath = '" + filepath.Join("bin", "wt.exe") + "'",
 		`$s.Arguments = '-w new "C:\Users\Lu''s PC\roundhouse.exe"'`,
 		"$s.WorkingDirectory = '" + home + "'",
+		"$s.IconLocation = '" + filepath.Join(home, "data", "roundhouse.ico") + ",0'",
 	} {
 		if !strings.Contains(script, want) {
 			t.Errorf("script misses %q:\n%s", want, script)
@@ -186,6 +210,11 @@ func TestRemoveDeletesWhatInstallCreated(t *testing.T) {
 		}
 		if _, err := os.Lstat(path); !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("%s: %s is still there", goos, path)
+		}
+		if icon := iconPath(e); icon != "" {
+			if _, err := os.Lstat(icon); !errors.Is(err, os.ErrNotExist) {
+				t.Errorf("%s: the icon %s is still there", goos, icon)
+			}
 		}
 	}
 }

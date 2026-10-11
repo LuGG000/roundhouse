@@ -5,6 +5,7 @@
 package shortcut
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"os"
@@ -18,14 +19,26 @@ const (
 	description = "Find, resume and start Claude Code chats from one list"
 )
 
+// The icon of the entry, drawn by icon/gen.go: the Windows shortcut points at the .ico, the desktop
+// entry at the .png and the macOS bundle carries the .icns.
+var (
+	//go:embed icon/roundhouse.ico
+	iconICO []byte
+	//go:embed icon/roundhouse.png
+	iconPNG []byte
+	//go:embed icon/roundhouse.icns
+	iconICNS []byte
+)
+
 // Env is everything an install or removal depends on, so tests can run without touching the system.
 type Env struct {
-	GOOS   string
-	Exe    string                       // absolute path of the roundhouse binary the entry starts
-	Home   string                       // the user's home folder
-	Getenv func(string) string          // environment lookup
-	Look   func(string) (string, error) // executable lookup, like exec.LookPath
-	Run    func(*exec.Cmd) error        // runs a helper program; only Windows needs one
+	GOOS    string
+	Exe     string                       // absolute path of the roundhouse binary the entry starts
+	Home    string                       // the user's home folder
+	DataDir string                       // roundhouse's data folder; the Windows shortcut keeps its icon file there
+	Getenv  func(string) string          // environment lookup
+	Look    func(string) (string, error) // executable lookup, like exec.LookPath
+	Run     func(*exec.Cmd) error        // runs a helper program; only Windows needs one
 }
 
 // Install creates the launcher entry and returns where it is.
@@ -58,7 +71,27 @@ func Remove(e Env) (string, bool, error) {
 		}
 		return path, true, os.RemoveAll(path)
 	}
-	return path, true, os.Remove(path)
+	if err := os.Remove(path); err != nil {
+		return path, false, err
+	}
+	if icon := iconPath(e); icon != "" {
+		if err := os.Remove(icon); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return path, true, err
+		}
+	}
+	return path, true, nil
+}
+
+// iconPath is where the icon file of the entry lives, or "" when it is part of the entry itself.
+func iconPath(e Env) string {
+	switch e.GOOS {
+	case "windows":
+		return filepath.Join(e.DataDir, appName+".ico")
+	case "linux", "freebsd", "openbsd", "netbsd":
+		path, _ := entryPath(e)
+		return filepath.Join(filepath.Dir(filepath.Dir(path)), "icons", "hicolor", "256x256", "apps", appName+".png")
+	}
+	return ""
 }
 
 // entryPath is where the entry of the platform lives.
@@ -103,6 +136,10 @@ func installWindows(e Env) (string, error) {
 	if err != nil {
 		return "", errors.New("powershell.exe not found; it creates the Start menu shortcut")
 	}
+	icon := iconPath(e)
+	if err := writeFile(icon, string(iconICO), 0o644); err != nil {
+		return "", err
+	}
 	script := strings.Join([]string{
 		"$ErrorActionPreference = 'Stop'",
 		"$s = (New-Object -ComObject WScript.Shell).CreateShortcut(" + psQuote(path) + ")",
@@ -110,7 +147,7 @@ func installWindows(e Env) (string, error) {
 		"$s.Arguments = " + psQuote(args),
 		"$s.WorkingDirectory = " + psQuote(e.Home),
 		"$s.Description = " + psQuote(description),
-		"$s.IconLocation = " + psQuote(e.Exe+",0"),
+		"$s.IconLocation = " + psQuote(icon+",0"),
 		"$s.Save()",
 	}, "; ")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -128,11 +165,16 @@ func psQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + 
 // installLinux writes a desktop entry; the desktop environment picks the terminal for Terminal=true.
 func installLinux(e Env) (string, error) {
 	path, _ := entryPath(e)
+	icon := iconPath(e)
+	if err := writeFile(icon, string(iconPNG), 0o644); err != nil {
+		return "", err
+	}
 	entry := "[Desktop Entry]\n" +
 		"Type=Application\n" +
 		"Name=roundhouse\n" +
 		"Comment=" + description + "\n" +
 		"Exec=" + desktopExecQuote(e.Exe) + "\n" +
+		"Icon=" + icon + "\n" +
 		"Terminal=true\n" +
 		"Categories=Utility;Development;\n" +
 		"Keywords=claude;chat;resume;\n"
@@ -161,6 +203,7 @@ func installDarwin(e Env) (string, error) {
 	<key>CFBundleName</key><string>roundhouse</string>
 	<key>CFBundleDisplayName</key><string>roundhouse</string>
 	<key>CFBundleIdentifier</key><string>io.github.lugg000.roundhouse</string>
+	<key>CFBundleIconFile</key><string>roundhouse</string>
 	<key>CFBundleExecutable</key><string>` + darwinLauncher + `</string>
 	<key>CFBundlePackageType</key><string>APPL</string>
 	<key>LSUIElement</key><true/>
@@ -168,6 +211,9 @@ func installDarwin(e Env) (string, error) {
 </plist>
 `
 	if err := writeFile(filepath.Join(path, "Contents", "Info.plist"), plist, 0o644); err != nil {
+		return "", err
+	}
+	if err := writeFile(filepath.Join(path, "Contents", "Resources", appName+".icns"), string(iconICNS), 0o644); err != nil {
 		return "", err
 	}
 	return path, writeFile(filepath.Join(path, "Contents", "MacOS", darwinLauncher), launcher, 0o755)
