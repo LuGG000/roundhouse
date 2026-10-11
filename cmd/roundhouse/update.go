@@ -119,9 +119,10 @@ func newUpdate(e *env) *cobra.Command {
 			if pause {
 				defer waitForEnter(cmd.InOrStdin(), cmd.OutOrStdout())
 			}
+			cosign, _ := exec.LookPath("cosign")
 			return updateFlow(cmd.Context(), updateDeps{
 				checker:     checker,
-				installer:   &update.Installer{},
+				installer:   &update.Installer{Cosign: cosign, Notice: func(text string) { _ = say(cmd.OutOrStdout(), text) }},
 				current:     version,
 				exe:         exe,
 				in:          cmd.InOrStdin(),

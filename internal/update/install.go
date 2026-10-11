@@ -14,7 +14,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 )
@@ -35,6 +37,13 @@ type Installer struct {
 	Client      *http.Client
 	// GOOS and GOARCH select the archive; empty means this build's.
 	GOOS, GOARCH string
+	// Cosign is the cosign program that verifies the signature of checksums.txt. Empty means none is
+	// installed: the archive is then checked against the checksums only, and Notice says so.
+	Cosign string
+	// Run runs cosign; nil runs it for real.
+	Run func(*exec.Cmd) error
+	// Notice receives what the user should know about the check; nil drops it.
+	Notice func(string)
 }
 
 type asset struct {
@@ -74,6 +83,9 @@ func (in *Installer) Install(ctx context.Context, version, target string) error 
 
 	sumData, err := in.get(ctx, sums, "application/octet-stream", true)
 	if err != nil {
+		return err
+	}
+	if err := in.verifySignature(ctx, assets, sumData); err != nil {
 		return err
 	}
 	want, err := checksumFor(sumData, name)
@@ -273,4 +285,61 @@ func Replace(target string, exe []byte) error {
 // not reported: the file only takes up disk space.
 func CleanOld(target string) {
 	_ = os.Remove(target + OldSuffix)
+}
+
+// signedBy is who must have signed checksums.txt: the release workflow of this repository, on a tag.
+var signedBy = "^https://github.com/" + regexp.QuoteMeta(Repo) + `/\.github/workflows/release\.yml@refs/tags/v.*$`
+
+// verifySignature checks the cosign signature of the checksums with the installed cosign. Without
+// cosign it only says that the signature was not checked; with cosign a missing or wrong signature
+// stops the update.
+func (in *Installer) verifySignature(ctx context.Context, assets map[string]string, sums []byte) error {
+	if in.Cosign == "" {
+		in.notice("The signature of checksums.txt was not checked (cosign is not installed).")
+		return nil
+	}
+	url, ok := assets["checksums.txt.sigstore.json"]
+	if !ok {
+		return errors.New("release has no checksums.txt.sigstore.json to check with cosign")
+	}
+	bundle, err := in.get(ctx, url, "application/octet-stream", true)
+	if err != nil {
+		return err
+	}
+	dir, err := os.MkdirTemp("", "roundhouse-verify-")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(dir) }()
+	sumsFile, bundleFile := filepath.Join(dir, "checksums.txt"), filepath.Join(dir, "checksums.txt.sigstore.json")
+	if err := os.WriteFile(sumsFile, sums, 0o600); err != nil {
+		return err
+	}
+	if err := os.WriteFile(bundleFile, bundle, 0o600); err != nil {
+		return err
+	}
+	cmd := exec.CommandContext(ctx, in.Cosign, "verify-blob", sumsFile, "--bundle", bundleFile,
+		"--certificate-identity-regexp", signedBy,
+		"--certificate-oidc-issuer", "https://token.actions.githubusercontent.com")
+	run := in.Run
+	if run == nil {
+		run = func(c *exec.Cmd) error {
+			if out, err := c.CombinedOutput(); err != nil {
+				return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(out)))
+			}
+			return nil
+		}
+	}
+	if err := run(cmd); err != nil {
+		return fmt.Errorf("cosign could not verify checksums.txt: %w", err)
+	}
+	in.notice("The signature of checksums.txt was verified with cosign.")
+
+	return nil
+}
+
+func (in *Installer) notice(text string) {
+	if in.Notice != nil {
+		in.Notice(text)
+	}
 }
