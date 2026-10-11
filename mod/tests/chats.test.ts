@@ -19,6 +19,8 @@ test('parseList reads the chats and leaves out those without an id or a title', 
 
   expect(parsed).toEqual({
     kind: 'ok',
+    version: null,
+    update: null,
     chats: [
       { id: 'a', title: 'First', last_prompt: 'hello', modified: '2026-10-11T11:00:00Z' },
       { id: 'c', title: 'Third', last_prompt: '', modified: '' },
@@ -45,4 +47,19 @@ test('ago is coarse and survives bad input', () => {
 
 test('oneLine collapses line breaks and spaces', () => {
   expect(oneLine('  fix\n  the   build ')).toBe('fix the build')
+})
+
+test('parseList reads the running version and a newer release', () => {
+  const parsed = parseList(
+    JSON.stringify({ schema: 1, version: '0.2.0', update: { version: '0.3.0', url: 'https://example.test/v0.3.0' }, sessions: [] }),
+  )
+
+  expect(parsed).toEqual({ kind: 'ok', chats: [], version: '0.2.0', update: { version: '0.3.0', url: 'https://example.test/v0.3.0' } })
+})
+
+test('parseList treats a missing, null or odd update as no update', () => {
+  for (const update of [undefined, null, 'x', {}, { version: '' }, { version: 3 }]) {
+    const parsed = parseList(JSON.stringify({ schema: 1, update, sessions: [] }))
+    expect(parsed).toEqual({ kind: 'ok', chats: [], version: null, update: null })
+  }
 })
