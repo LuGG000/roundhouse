@@ -81,3 +81,10 @@ Releases are made by pushing a tag `vX.Y.Z`. The release workflow runs GoRelease
 checksums) and signs `checksums.txt` keyless with cosign. `main` should be green first. The first tag also
 publishes a signature entry for the repository in the public Sigstore transparency log, so tag only when the
 repository is meant to be public.
+
+### Arch packages
+
+`packaging/aur` (builds from the tag tarball) and `packaging/aur-bin` (the prebuilt Linux archives) are the
+`PKGBUILD`s for the AUR packages `roundhouse` and `roundhouse-bin`. After a release, `packaging/bump.sh X.Y.Z` sets
+both to that version and fills in the checksums from the release. Publishing is a push of each folder to its
+AUR repository by the maintainer, who owns the AUR account. `makepkg` was not run on Arch yet.
