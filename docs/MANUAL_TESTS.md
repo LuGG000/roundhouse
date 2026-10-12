@@ -49,7 +49,7 @@ Start Claude Code with `claude --plugin-dir mod` in a folder that has chats, wit
    **Style** changes the palette and single colors, and they are still set after restarting Claude Code.
 6. Rename the `roundhouse` binary: the pane says it is not available and the session works as before.
 7. Together with switchyard-mod: both panes open as tabs you can switch between, neither hides the other's toasts, and a limit still opens its own card.
-8. The desktop app's Code tab shows the same pane.
+8. The desktop app's Code tab shows the same pane. Known: that session has no `/resume`, so **Switch here** falls back to **New window**; buttons often need a second click (open issue #14).
 
 ## Updates
 
