@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
@@ -265,8 +266,7 @@ func Replace(target string, exe []byte) error {
 		return err
 	}
 	if runtime.GOOS == "windows" {
-		old := target + OldSuffix
-		_ = os.Remove(old)
+		old := freeOldName(target)
 		if err := os.Rename(target, old); err != nil {
 			return err
 		}
@@ -284,7 +284,31 @@ func Replace(target string, exe []byte) error {
 // CleanOld removes the binary left behind by a Windows update. A failure is
 // not reported: the file only takes up disk space.
 func CleanOld(target string) {
-	_ = os.Remove(target + OldSuffix)
+	for _, name := range oldNames(target) {
+		_ = os.Remove(name)
+	}
+}
+
+// oldNames are the places Replace moves a binary aside to: .old, and .old1 to .old9 for when an earlier
+// one is still being run and cannot be deleted.
+func oldNames(target string) []string {
+	names := []string{target + OldSuffix}
+	for i := 1; i < 10; i++ {
+		names = append(names, target+OldSuffix+strconv.Itoa(i))
+	}
+
+	return names
+}
+
+// freeOldName is the first of the old names that is not taken; it deletes a leftover to make one free.
+func freeOldName(target string) string {
+	for _, name := range oldNames(target) {
+		if err := os.Remove(name); err == nil || errors.Is(err, os.ErrNotExist) {
+			return name
+		}
+	}
+
+	return target + OldSuffix
 }
 
 // signedBy is who must have signed checksums.txt: the release workflow of this repository, on a tag.
