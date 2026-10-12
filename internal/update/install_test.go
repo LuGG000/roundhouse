@@ -292,3 +292,28 @@ func TestInstallWithoutCosignSaysTheSignatureWasNotChecked(t *testing.T) {
 		t.Errorf("notices = %q", notices)
 	}
 }
+
+func TestReplaceMovesAsideWhenTheOldBinaryIsStillRunning(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("only Windows moves the running binary aside")
+	}
+	path := target(t)
+	if err := os.WriteFile(path+OldSuffix, []byte("older"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	running, err := os.Open(path + OldSuffix) // an open file cannot be deleted, like a running program
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = running.Close() }()
+
+	if err := Replace(path, []byte("new")); err != nil {
+		t.Fatal(err)
+	}
+	if got := read(t, path); got != "new" {
+		t.Errorf("binary = %q", got)
+	}
+	if got := read(t, path+OldSuffix+"1"); got != "old" {
+		t.Errorf("moved aside = %q", got)
+	}
+}
