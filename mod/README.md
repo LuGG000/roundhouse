@@ -17,7 +17,7 @@ If `roundhouse` is missing from `PATH` or reports a `list` schema the mod does n
 
 ## Install
 
-You need roundhouse 0.2.0 or newer on your `PATH` (`roundhouse list --folder` and `roundhouse open --terminal` are new there) and Claude Code 2.1.287 or newer, in the terminal or in the Code tab of the desktop app.
+You need roundhouse 0.2.0 or newer on your `PATH` (`roundhouse list --folder` and `roundhouse open --terminal` are new there) and Claude Code 2.1.287 or newer. It is made for the terminal. In the Code tab of the desktop app the pane opens, but the session there has no `/resume`, so **Switch here** opens the chat in a new window instead; buttons may also need a second click there (not understood yet).
 
 ```
 roundhouse mod install      # or, inside Claude Code: /plugin install roundhouse-mod --marketplace LuGG000/roundhouse

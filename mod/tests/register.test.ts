@@ -22,7 +22,7 @@ const LIST = JSON.stringify({
 type Run = { exitCode: number; stdout: string; stderr: string }
 
 /** The world beneath the plugin: a clock, a session, `/resume` and `/clear`, and the roundhouse command. */
-function world(on: On, answer: (argv: readonly string[]) => Run | null, entries: Record<string, unknown> = {}) {
+function world(on: On, answer: (argv: readonly string[]) => Run | null, entries: Record<string, unknown> = {}, refused: string[] = []) {
   const calls: string[][] = []
   const commands: { command: string; args: string }[] = []
   mock.clock(on, { now: Date.parse('2026-10-11T12:00:00Z') })
@@ -39,6 +39,7 @@ function world(on: On, answer: (argv: readonly string[]) => Run | null, entries:
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('command.run', (_$, e) => {
     commands.push({ command: e.command, args: e.args })
+    if (refused.includes(e.command)) throw new Error(`no command named ./${e.command} in this session`)
     if (e.command === 'resume') session.id = e.args.trim()
 
     return { text: 'ok' }
@@ -267,5 +268,16 @@ test('Update opens a window to confirm in and installs nothing itself', async ($
   // Never an install from the pane: no call without --terminal, no --yes.
   expect(calls.filter(argv => argv[1] === 'update').every(argv => argv.includes('--terminal'))).toBe(true)
   expect(calls.flat()).not.toContain('--yes')
+  await ui.unmount()
+})
+
+test('Switch here opens a new window when the session has no /resume, as in the desktop Code tab', async ($, on) => {
+  const { calls, session } = world(on, argv => (argv[1] === 'open' ? ok('') : ok(LIST)), {}, ['resume'])
+  await runCommand($, 'roundhouse')
+
+  const ui = await mount($, 'desktop')
+  await ui.press({ key: 'switch-old-2' })
+  expect(calls).toContainEqual(['roundhouse', 'open', 'old-2', '--terminal'])
+  expect(session.id).toBe('current-1')
   await ui.unmount()
 })

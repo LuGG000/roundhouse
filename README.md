@@ -1,3 +1,5 @@
+| Mod together with switchyard-mod | yes (Windows Terminal) | not yet | not yet |
+| Mod in the Code tab of the desktop app | partly: the pane opens, but Switch here fails there (no `/resume` in that session; it now falls back to a new window, not yet tried) and buttons often need two clicks | not applicable | not yet |
 <img src="docs/logo.svg" alt="roundhouse logo" width="96" align="right">
 
 # roundhouse

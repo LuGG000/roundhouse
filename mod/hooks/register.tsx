@@ -89,16 +89,17 @@ async function saveColors($: Engine, colors: Colors): Promise<void> {
 async function switchTo($: Engine, chat: Chat): Promise<void> {
   try {
     await $.command.run({ command: 'resume', args: chat.id })
-  } catch (error) {
-    $.ui.toast(`Could not resume: ${error instanceof Error ? error.message : String(error)}`)
+  } catch {
+    // The Code tab of the desktop app has no /resume in its sessions; a new window can still open the chat.
+    await openWindow($, chat, 'This session cannot switch chats. ')
   }
   await refresh($)
 }
 
 /** Opens the chat in a new terminal window, in its folder, through `roundhouse open --terminal`. */
-async function openWindow($: Engine, chat: Chat): Promise<void> {
+async function openWindow($: Engine, chat: Chat, reason = ''): Promise<void> {
   const result = await run($, ['open', chat.id, '--terminal'])
-  $.ui.toast('error' in result ? result.error : `Opened "${oneLine(chat.title)}" in a new terminal.`)
+  $.ui.toast(reason + ('error' in result ? result.error : `Opened "${oneLine(chat.title)}" in a new terminal.`))
 }
 
 /** Opens a window that runs `roundhouse update`, where the person confirms; nothing is installed from the pane. */
@@ -111,7 +112,7 @@ async function startNewChat($: Engine): Promise<void> {
   try {
     await $.command.run({ command: 'clear' })
   } catch (error) {
-    $.ui.toast(`Could not start a new chat: ${error instanceof Error ? error.message : String(error)}`)
+    $.ui.toast(`Could not start a new chat here (${error instanceof Error ? error.message : String(error)}). Start one in a terminal with claude.`)
   }
   await refresh($)
 }
