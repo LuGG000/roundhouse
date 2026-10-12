@@ -73,6 +73,7 @@ roundhouse list [--json]          print the chats, newest first
 roundhouse open <id>              resume a chat in its folder (a unique id prefix is enough)
                 [--terminal]      in a new terminal window, and return at once
 roundhouse new [folder]           start a new chat in a folder (default: the current one)
+                [--terminal]      in a new terminal window, and return at once
 roundhouse update                 look for a newer release; installs it only after you answer yes
                 [--check [--json]]  only look, install nothing
 roundhouse mod install            install the Claude Code mod; it is then on in every new session

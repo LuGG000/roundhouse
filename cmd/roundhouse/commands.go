@@ -102,7 +102,7 @@ func newOpen(e *env) *cobra.Command {
 				return err
 			}
 			if inTerminal {
-				return openInTerminal(e.starter.Name, s)
+				return inNewWindow(s.Cwd, "open", s.ID, "--starter", e.starter.Name)
 			}
 			return run(cmd)
 		},
@@ -111,15 +111,14 @@ func newOpen(e *env) *cobra.Command {
 	return cmd
 }
 
-// openInTerminal runs "roundhouse open <id>" in a new terminal window in the
-// chat's folder, with the same starter, and does not wait for it.
-func openInTerminal(starterName string, s index.Session) error {
+// inNewWindow runs roundhouse with args in a new terminal window in dir and
+// does not wait for it.
+func inNewWindow(dir string, args ...string) error {
 	self, err := os.Executable()
 	if err != nil {
 		return err
 	}
-	cmd, err := terminal.Command(runtime.GOOS, exec.LookPath, s.Cwd,
-		[]string{self, "open", s.ID, "--starter", starterName})
+	cmd, err := terminal.Command(runtime.GOOS, exec.LookPath, dir, append([]string{self}, args...))
 	if err != nil {
 		return err
 	}
@@ -130,7 +129,8 @@ func openInTerminal(starterName string, s index.Session) error {
 }
 
 func newNew(e *env) *cobra.Command {
-	return &cobra.Command{
+	var inTerminal bool
+	cmd := &cobra.Command{
 		Use:   "new [folder]",
 		Short: "Start a new chat in a folder (default: the current folder)",
 		Args:  cobra.MaximumNArgs(1),
@@ -149,9 +149,14 @@ func newNew(e *env) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if inTerminal {
+				return inNewWindow(dir, "new", dir, "--starter", e.starter.Name)
+			}
 			return run(cmd)
 		},
 	}
+	cmd.Flags().BoolVar(&inTerminal, "terminal", false, "start the chat in a new terminal window and return at once")
+	return cmd
 }
 
 // find returns the session whose id equals or uniquely starts with prefix.
