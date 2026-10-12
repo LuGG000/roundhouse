@@ -111,8 +111,10 @@ async function startUpdate($: Engine): Promise<void> {
 async function startNewChat($: Engine): Promise<void> {
   try {
     await $.command.run({ command: 'clear' })
-  } catch (error) {
-    $.ui.toast(`Could not start a new chat here (${error instanceof Error ? error.message : String(error)}). Start one in a terminal with claude.`)
+  } catch {
+    // Like /resume, /clear is missing in the Code tab of the desktop app; a new window can still start a chat.
+    const result = await run($, ['new', await $.session.cwd(), '--terminal'])
+    $.ui.toast('error' in result ? result.error : 'This session cannot clear itself. Started a new chat in a new terminal.')
   }
   await refresh($)
 }

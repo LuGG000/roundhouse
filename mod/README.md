@@ -6,7 +6,7 @@ One command, `/roundhouse`, opens a pane with the chats of the folder the sessio
 
 - **Switch here** continues in this session with that chat, as if you had typed `/resume <id>`.
 - **New window** opens the chat in a new terminal window, in its folder, with your configured roundhouse starter (so it also works through Switchyard).
-- **New chat** starts a fresh conversation in this session (`/clear`).
+- **New chat** starts a fresh conversation in this session (`/clear`). Where the session has no `/clear` (the Code tab of the desktop app), it starts the chat in a new terminal window instead (`roundhouse new --terminal`, needs the release after 0.4.5).
 - **Refresh** reads the folder again. The chat you are in is marked "this chat". The pane also follows a switch, a new chat and every finished turn by itself.
 - **Style** opens a page like switchyard-mod's: palettes (default, dark, light) and four colors (background, text, accent, borders) with a picker of common colors and a field for any other one (`#00ff88`, a color name, `default`, or `<slot> <color>`). It only changes this pane; the colors are kept in the mod's own store, so they survive restarts. `/roundhouse style` opens the page directly.
 - **Update notice:** when `roundhouse` knows a newer release (from its daily check, `update_check` in its config), the pane says so, with the version you have, and a toast mentions it once per session. **Update…** opens a new terminal window that runs `roundhouse update`, where you answer the question; the mod never installs anything itself, and nothing changes before you say yes there. The mod itself is updated by Claude Code: `claude plugin update roundhouse-mod@roundhouse`.

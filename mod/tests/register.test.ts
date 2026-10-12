@@ -271,6 +271,16 @@ test('Update opens a window to confirm in and installs nothing itself', async ($
   await ui.unmount()
 })
 
+test('New chat starts one in a new window when the session has no /clear, as in the desktop Code tab', async ($, on) => {
+  const { calls } = world(on, argv => (argv[1] === 'new' ? ok('') : ok(LIST)), {}, ['clear'])
+  await runCommand($, 'roundhouse')
+
+  const ui = await mount($, 'desktop')
+  await ui.press({ key: 'new-chat' })
+  expect(calls).toContainEqual(['roundhouse', 'new', '/work/repo', '--terminal'])
+  await ui.unmount()
+})
+
 test('Switch here opens a new window when the session has no /resume, as in the desktop Code tab', async ($, on) => {
   const { calls, session } = world(on, argv => (argv[1] === 'open' ? ok('') : ok(LIST)), {}, ['resume'])
   await runCommand($, 'roundhouse')
